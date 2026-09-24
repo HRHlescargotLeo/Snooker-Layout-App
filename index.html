@@ -87,6 +87,14 @@ button[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1p
 .ball.snapped .ring{stroke-dasharray:none;stroke:#FFE58A;stroke-width:5}
 .ball.removing{opacity:.45}
 .dragging .ball{cursor:grabbing}
+.panning{cursor:grabbing}
+.zoomctl{position:absolute;right:10px;bottom:10px;display:flex;gap:4px;z-index:2}
+.zoomctl button{min-width:38px;height:38px;padding:0 10px;font-size:20px;line-height:1;border-radius:8px;
+  background:rgba(246,247,243,.92);color:#18201C;border-color:rgba(0,0,0,.2);box-shadow:0 1px 4px rgba(0,0,0,.25)}
+.zoomctl #zoomfit{font-size:13px}
+.zoomctl button:disabled{opacity:.5}
+.stagehint{position:absolute;left:50%;top:10px;transform:translateX(-50%);margin:0;z-index:2;pointer-events:none;
+  background:rgba(16,21,18,.82);color:#F2F5F1;font-size:14px;padding:6px 12px;border-radius:999px;white-space:nowrap;max-width:calc(100% - 20px);overflow:hidden;text-overflow:ellipsis}
 
 .bar{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 12px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;min-height:44px;box-sizing:border-box}
 .status{font-variant-numeric:tabular-nums}
@@ -244,7 +252,14 @@ summary{cursor:pointer;font:600 13px/1.4 var(--display);letter-spacing:.1em;text
     </div>
   </div>
 
-  <div class="stage" id="stage" role="tabpanel" aria-labelledby="tab-snooker"><svg id="table" role="application" aria-label="Table, top-down view"></svg></div>
+  <div class="stage" id="stage" role="tabpanel" aria-labelledby="tab-snooker"><svg id="table" role="application" aria-label="Table, top-down view"></svg>
+    <p class="stagehint" id="stagehint" hidden aria-live="polite"></p>
+    <div class="zoomctl" role="group" aria-label="Zoom">
+      <button id="zoomout" type="button" aria-label="Zoom out" title="Zoom out">&minus;</button>
+      <button id="zoomfit" type="button" hidden title="Show the whole table">Fit</button>
+      <button id="zoomin" type="button" aria-label="Zoom in" title="Zoom in">+</button>
+    </div>
+  </div>
 
   <div class="bar status" id="status" aria-live="polite"></div>
 
@@ -439,16 +454,49 @@ function isPortrait(){
   return stage.clientWidth<620;
 }
 function applyOrientation(){
-  const M=G.M;
-  if(isPortrait()){
-    svg.setAttribute("viewBox",`${-M} ${-M} ${G.W+2*M} ${G.L+2*M}`);
+  const M=G.M, p=isPortrait();
+  if(p){
+    G.base={x:-M,y:-M,w:G.W+2*M,h:G.L+2*M};
     G.world.setAttribute("transform",`matrix(0 -1 1 0 0 ${G.L})`); // baulk at the bottom
   }else{
-    svg.setAttribute("viewBox",`${-M} ${-M} ${G.L+2*M} ${G.W+2*M}`);
+    G.base={x:-M,y:-M,w:G.L+2*M,h:G.W+2*M};
     G.world.setAttribute("transform","");                          // baulk on the left
   }
+  if(!G.view||G.view.portrait!==p)G.view={portrait:p,s:1,x:G.base.x,y:G.base.y};
+  applyView();
 }
-window.addEventListener("resize",()=>{if(portraitOverride==null)applyOrientation();});
+/* ---------- zoom: the view is a window (viewBox) onto the whole table ---------- */
+const MAXZOOM=8;
+function applyView(){
+  const B=G.base, v=G.view;
+  v.s=Math.max(1,Math.min(MAXZOOM,v.s));
+  const w=B.w/v.s, h=B.h/v.s;
+  v.x=Math.max(B.x,Math.min(B.x+B.w-w,v.x)); v.y=Math.max(B.y,Math.min(B.y+B.h-h,v.y));
+  svg.setAttribute("viewBox",`${v.x} ${v.y} ${w} ${h}`);
+  zoomFit.hidden=v.s<=1.001; zoomOut.disabled=v.s<=1.001; zoomIn.disabled=v.s>=MAXZOOM-0.001;
+}
+// Screen point -> svg user point for a given view (handles the letterboxing of preserveAspectRatio)
+function geom(){const r=svg.getBoundingClientRect(), B=G.base, v=G.view, w=B.w/v.s, h=B.h/v.s;
+  const k=Math.min(r.width/w,r.height/h); return {r,k,ox:r.left+(r.width-w*k)/2,oy:r.top+(r.height-h*k)/2};}
+function toUser(cx,cy){const g=geom(), v=G.view; return [v.x+(cx-g.ox)/g.k, v.y+(cy-g.oy)/g.k];}
+// Zoom to scale s keeping the user point u under screen point (cx,cy)
+function zoomAt(s,u,cx,cy){
+  const v=G.view; v.s=Math.max(1,Math.min(MAXZOOM,s));
+  const r=svg.getBoundingClientRect(), w=G.base.w/v.s, h=G.base.h/v.s, k=Math.min(r.width/w,r.height/h);
+  const ox=r.left+(r.width-w*k)/2, oy=r.top+(r.height-h*k)/2;
+  v.x=u[0]-(cx-ox)/k; v.y=u[1]-(cy-oy)/k; applyView();
+}
+function zoomBy(f,cx,cy){
+  const r=svg.getBoundingClientRect();
+  if(cx==null){ // zoom around the selected ball if there is one, else the middle of the view
+    const b=G.selected&&byId(G.selected);
+    if(b&&b.on){const m=G.world.getScreenCTM();cx=m.a*b.x+m.c*b.y+m.e;cy=m.b*b.x+m.d*b.y+m.f;}
+    else{cx=r.left+r.width/2;cy=r.top+r.height/2;}
+  }
+  zoomAt(G.view.s*f,toUser(cx,cy),cx,cy);
+}
+function zoomReset(){G.view.s=1;applyView();}
+window.addEventListener("resize",()=>{if(portraitOverride==null)applyOrientation();else applyView();});
 if(phoneMQ.addEventListener)phoneMQ.addEventListener("change",()=>{closeSheet();applyOrientation();});
 
 /* ---------- state helpers ---------- */
@@ -487,7 +535,7 @@ function snapTo(b,p,rad){
   if(hit&&!overlaps(x,y,b))return [x,y];
   return null;
 }
-function select(id){G.selected=id; render();}
+function select(id){if(G.selected!==id)G.armed=false; G.selected=id; render();}
 
 function render(){
   G.balls.forEach(b=>{
@@ -500,18 +548,26 @@ function render(){
   });
   if(G.selected&&G.nodes[G.selected])G.ballLayer.appendChild(G.nodes[G.selected]);
   renderTray(); renderStatus();
+  const sb=G.selected&&byId(G.selected);
+  stageHint.hidden=!(sb&&sb.on&&!drag&&G.armed);
+  if(!stageHint.hidden){const n=G.colours[sb.type].name.toLowerCase(), t=touchFirst?"Tap":"Click";
+    stageHint.textContent=G.placed?`${t} again to adjust, or ${t.toLowerCase()} the ${n} to finish`:`${t} where the ${n} should go`;}
   undoBtn.disabled=!G.history.length;
   if(!sharebox.hidden&&!drag)refreshShare();
 }
 
-/* ---------- pointer interaction ---------- */
+/* ---------- pointer interaction ----------
+   One finger or the mouse on a ball drags it. A quick tap on a ball selects it; a tap on the cloth then
+   moves the selected ball there. Two fingers pinch to zoom and pan. With the table zoomed in, dragging
+   the cloth pans. Double-tap the cloth (with nothing selected) to zoom in there, or back out. */
 function ctmInv(){return G.world.getScreenCTM().inverse();}
 function toTable(cx,cy){const p=svg.createSVGPoint();p.x=cx;p.y=cy;const m=ctmInv();const q=p.matrixTransform(m);return [q.x,q.y,Math.hypot(m.a,m.b)];}
 const loupe=document.getElementById("loupe"), loupeSvg=document.getElementById("loupesvg"), loupeUse=document.getElementById("loupeuse");
-const LOUPE=132, ZOOM=3.5;
+const LOUPE=132;
 function showLoupe(b,cx,cy){
-  const k=svg.getScreenCTM().a; // screen px per mm
-  const span=LOUPE/(k*ZOOM);
+  const k=svg.getScreenCTM().a; // screen px per mm at the current zoom
+  const mag=Math.max(1.6,Math.min(3.5,40/(2*b.r*k)));  // show the ball about 40px across
+  const span=LOUPE/(k*mag);
   const X=isPortrait()?b.y:b.x, Y=isPortrait()?G.L-b.x:b.y;
   loupeSvg.setAttribute("viewBox",`${X-span/2} ${Y-span/2} ${span} ${span}`);
   let lx=cx, ly=cy-LOUPE/2-56;
@@ -521,28 +577,72 @@ function showLoupe(b,cx,cy){
   loupe.classList.toggle("snapped",!!b.snapped);
   loupe.hidden=false;
 }
-let drag=null;
+const TAP_PX=8, TAP_MS=450;
+let drag=null, press=null, pinch=null, lastTap=null;
+const pts=new Map(); // pointers currently down on the table
 function startDrag(b,e,mode,offset){
   pushHistory();
   drag={b,id:e.pointerId,mode,off:offset||[0,0],touch:e.pointerType!=="mouse",
-        v:[b.x,b.y],lc:[e.clientX,e.clientY],lt:e.timeStamp||performance.now(),speed:0,changed:false,last:[b.x,b.y]};
+        v:[b.x,b.y],lc:[e.clientX,e.clientY],sc:[e.clientX,e.clientY],t0:performance.now(),far:false,
+        lt:e.timeStamp||performance.now(),speed:0,changed:false,last:[b.x,b.y],wasSel:G.selected===b.id};
   G.selected=b.id; svg.classList.add("dragging"); render();
-  if(drag.touch)showLoupe(b,e.clientX,e.clientY);
+}
+function cancelDrag(){ // put the ball back where it was and forget the drag
+  if(!drag)return;
+  restore(G.history.pop()); drag=null; loupe.hidden=true; svg.classList.remove("dragging"); render();
+}
+function ballAt(x,y,mmPerPx,type){
+  let best=null,bd=Infinity;
+  G.balls.forEach(b=>{if(!b.on)return;const reach=Math.max(b.r,(type==="mouse"?14:24)*mmPerPx);
+    const d=Math.hypot(b.x-x,b.y-y);if(d<reach&&d<bd){bd=d;best=b;}});
+  return best;
 }
 svg.addEventListener("pointerdown",e=>{
-  if(drag)return;
+  pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(e.pointerType!=="mouse"&&pts.size===2){ // second finger: switch to pinch-zoom
+    cancelDrag(); press=null;
+    const [a,b]=[...pts.values()], mid=[(a.x+b.x)/2,(a.y+b.y)/2];
+    pinch={ids:[...pts.keys()],d0:Math.hypot(a.x-b.x,a.y-b.y)||1,s0:G.view.s,u:toUser(mid[0],mid[1])};
+    e.preventDefault(); return;
+  }
+  if(pts.size>1||drag||pinch)return;
+  e.preventDefault();
   const [x,y,mmPerPx]=toTable(e.clientX,e.clientY);
-  let best=null,bd=Infinity;
-  G.balls.forEach(b=>{if(!b.on)return;const reach=Math.max(b.r,(e.pointerType==="mouse"?14:24)*mmPerPx);
-    const d=Math.hypot(b.x-x,b.y-y);if(d<reach&&d<bd){bd=d;best=b;}});
-  if(!best){G.selected=null;render();return;}
-  e.preventDefault(); G.nodes[best.id].focus({preventScroll:true});
-  // Mouse follows the pointer exactly. Touch and pen move the ball relative to the finger,
-  // slowing down when the finger moves slowly so small adjustments are easy.
-  startDrag(best,e,e.pointerType==="mouse"?"abs":"rel",[best.x-x,best.y-y]);
+  const best=ballAt(x,y,mmPerPx,e.pointerType);
+  if(best){
+    const wasSel=G.selected===best.id&&G.armed;
+    G.nodes[best.id].focus({preventScroll:true});
+    // Mouse follows the pointer exactly. Touch and pen move the ball relative to the finger,
+    // slowing down when the finger moves slowly so small adjustments are easy.
+    startDrag(best,e,e.pointerType==="mouse"?"abs":"rel",[best.x-x,best.y-y]);
+    drag.wasSel=wasSel;
+  }else{
+    press={id:e.pointerId,sc:[e.clientX,e.clientY],lc:[e.clientX,e.clientY],t0:performance.now(),moved:false,type:e.pointerType};
+  }
 });
+function onMove(e){
+  if(pts.has(e.pointerId))pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(pinch){
+    const a=pts.get(pinch.ids[0]), b=pts.get(pinch.ids[1]); if(!a||!b)return;
+    const d=Math.hypot(a.x-b.x,a.y-b.y);
+    zoomAt(pinch.s0*d/pinch.d0,pinch.u,(a.x+b.x)/2,(a.y+b.y)/2);
+    return;
+  }
+  if(drag&&e.pointerId===drag.id){
+    if(!drag.far&&Math.hypot(e.clientX-drag.sc[0],e.clientY-drag.sc[1])>TAP_PX){drag.far=true;}
+    if(!drag.far&&drag.touch){drag.lc=[e.clientX,e.clientY];return;} // ignore finger jitter until it really moves
+    moveDrag(e); return;
+  }
+  if(press&&e.pointerId===press.id){
+    if(!press.moved&&Math.hypot(e.clientX-press.sc[0],e.clientY-press.sc[1])>TAP_PX)press.moved=true;
+    if(press.moved&&G.view.s>1.001){ // pan the zoomed view
+      const g=geom(); G.view.x-=(e.clientX-press.lc[0])/g.k; G.view.y-=(e.clientY-press.lc[1])/g.k; applyView();
+      svg.classList.add("panning");
+    }
+    press.lc=[e.clientX,e.clientY];
+  }
+}
 function moveDrag(e){
-  if(!drag||e.pointerId!==drag.id)return;
   const b=drag.b, m=ctmInv(), mmPerPx=Math.hypot(m.a,m.b);
   let cand;
   if(drag.mode==="abs"){
@@ -572,17 +672,58 @@ function moveDrag(e){
   render();
   if(drag.touch)showLoupe(b,e.clientX,e.clientY);
 }
-window.addEventListener("pointermove",moveDrag,{passive:true});
+window.addEventListener("pointermove",onMove,{passive:true});
 function endDrag(e){
   if(!drag||(e&&e.pointerId!==drag.id))return;
   const b=drag.b;
+  const tap=!drag.far&&performance.now()-drag.t0<TAP_MS;
+  if(tap){ // a tap on a ball: select it, or deselect it if it was already selected
+    restore(G.history.pop());
+    const was=drag.wasSel; drag=null; loupe.hidden=true; svg.classList.remove("dragging");
+    G.selected=was?null:b.id; G.armed=!was; G.placed=false; render(); return;
+  }
+  G.armed=false;
   if(b.removing){b.removing=false;b.on=false;[b.x,b.y]=drag.last;G.selected=null;}
   b.snapped=false;
   if(!drag.changed)G.history.pop();
   drag=null; loupe.hidden=true; svg.classList.remove("dragging"); render();
 }
-window.addEventListener("pointerup",endDrag);
-window.addEventListener("pointercancel",endDrag);
+function placeSelected(cx,cy){
+  const b=G.selected&&byId(G.selected); if(!b||!b.on)return false;
+  const [x,y,mmPerPx]=toTable(cx,cy);
+  if(x<-b.r||x>G.L+b.r||y<-b.r||y>G.W+b.r)return false; // tapped the rail: not a placement
+  const p=resolve(b,x,y); if(!p)return true;
+  const s=snapOn?snapTo(b,p,Math.max(4,Math.min(15,5*mmPerPx))):null, q=s||p;
+  pushHistory(); b.x=q[0]; b.y=q[1]; G.placed=true; render(); return true;
+}
+function onUp(e){
+  pts.delete(e.pointerId);
+  if(pinch){ if(pts.size<2)pinch=null; return; }
+  if(drag){endDrag(e);return;}
+  if(press&&e.pointerId===press.id){
+    const p=press; press=null; svg.classList.remove("panning");
+    if(p.moved||performance.now()-p.t0>TAP_MS||e.type==="pointercancel")return;
+    const now=performance.now();
+    const dbl=lastTap&&now-lastTap.t<320&&Math.hypot(e.clientX-lastTap.x,e.clientY-lastTap.y)<30;
+    if(G.selected&&G.armed){ // tap-to-place
+      if(!placeSelected(e.clientX,e.clientY)){G.selected=null;render();}
+      lastTap=null; return;
+    }
+    if(G.selected){G.selected=null;render();}
+    if(dbl){ // double-tap: zoom in here, or back out
+      if(G.view.s>1.001)zoomReset(); else zoomBy(3,e.clientX,e.clientY);
+      lastTap=null; return;
+    }
+    lastTap={t:now,x:e.clientX,y:e.clientY};
+  }
+}
+window.addEventListener("pointerup",onUp);
+window.addEventListener("pointercancel",onUp);
+// Trackpad pinch (sent as ctrl+wheel) and ctrl/cmd+scroll zoom; plain scrolling pans once zoomed in.
+svg.addEventListener("wheel",e=>{
+  if(e.ctrlKey||e.metaKey){e.preventDefault();zoomBy(Math.exp(-e.deltaY*0.01),e.clientX,e.clientY);return;}
+  if(G.view.s>1.001){e.preventDefault();const g=geom();G.view.x+=e.deltaX/g.k;G.view.y+=e.deltaY/g.k;applyView();}
+},{passive:false});
 
 /* ---------- keyboard ---------- */
 document.addEventListener("keydown",e=>{
@@ -590,6 +731,11 @@ document.addEventListener("keydown",e=>{
   if(e.key==="Escape"&&document.body.classList.contains("sheet-open")){closeSheet();return;}
   if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="z"){e.preventDefault();undo();return;}
   if(ae&&ae.tagName==="BUTTON")return;
+  if(!e.ctrlKey&&!e.metaKey&&!e.altKey){
+    if(e.key==="+"||e.key==="="){e.preventDefault();zoomBy(1.6);return;}
+    if(e.key==="-"||e.key==="_"){e.preventDefault();zoomBy(1/1.6);return;}
+    if(e.key==="0"){e.preventDefault();zoomReset();return;}
+  }
   const b=G.selected&&byId(G.selected); if(!b||!b.on)return;
   const step=e.shiftKey?10:1; let sx=0,sy=0;
   if(e.key==="ArrowLeft")sx=-1; else if(e.key==="ArrowRight")sx=1; else if(e.key==="ArrowUp")sy=-1; else if(e.key==="ArrowDown")sy=1;
@@ -621,7 +767,7 @@ function returnToTable(b){
       if(!overlaps(x,y,b)){p=[x,y];break outer;} if(rad===0)break;}}
   }
   if(!p)return;
-  pushHistory(); b.x=p[0]; b.y=p[1]; b.on=true; G.selected=b.id; render();
+  pushHistory(); b.x=p[0]; b.y=p[1]; b.on=true; G.selected=b.id; G.armed=true; G.placed=false; render();
 }
 
 /* ---------- tray ---------- */
@@ -645,7 +791,7 @@ function renderTray(){
         cleanup();
         const [x,y]=toTable(ev.clientX,ev.clientY);
         b.on=true; b.x=clampX(x,b.r); b.y=clampY(y,b.r);
-        startDrag(b,ev,"abs",[0,0]);
+        startDrag(b,ev,"abs",[0,0]); drag.far=true;
         G.history[G.history.length-1].forEach(o=>{if(o.id===b.id)o.on=false;});
         drag.changed=true; moveDrag(ev);
       };
@@ -671,7 +817,7 @@ function contact(b){
 function renderStatus(){
   const b=G.selected&&byId(G.selected);
   if(!b||!b.on){
-    statusEl.innerHTML=`<span>${G.summary(G.balls)}</span><span class="dim">Drag a ball to move it, or off the table to pot it</span>`;
+    statusEl.innerHTML=`<span>${G.summary(G.balls)}</span><span class="dim">Drag a ball, or tap it and then tap where it goes</span>`;
     return;
   }
   statusEl.innerHTML=`<b>${G.colours[b.type].name}</b><span><span class="dim">From baulk</span> ${fmt(b.x)} mm</span><span><span class="dim">From left</span> ${fmt(b.y)} mm</span><span class="tag">${contact(b)}</span>`;
@@ -679,6 +825,12 @@ function renderStatus(){
 
 /* ---------- controls ---------- */
 const undoBtn=document.getElementById("undo");
+const zoomIn=document.getElementById("zoomin"), zoomOut=document.getElementById("zoomout"), zoomFit=document.getElementById("zoomfit");
+zoomIn.addEventListener("click",()=>zoomBy(1.6));
+zoomOut.addEventListener("click",()=>zoomBy(1/1.6));
+zoomFit.addEventListener("click",zoomReset);
+const stageHint=document.getElementById("stagehint");
+const touchFirst=matchMedia("(pointer:coarse)").matches;
 function undo(){if(!G.history.length)return;restore(G.history.pop());G.selected=null;render();}
 undoBtn.addEventListener("click",undo);
 document.getElementById("reset").addEventListener("click",()=>{pushHistory();G.breakOff().forEach(f=>{const b=byId(f.id);b.x=f.x;b.y=f.y;b.on=true;});G.selected=null;render();});

@@ -1,6 +1,6 @@
 // Offline support for the Snooker & Pool Layout Board.
 // Bump VERSION whenever index.html or the icons change so installed copies pick up the update.
-const VERSION = "v1";
+const VERSION = "v2";
 const CACHE = "layout-board-" + VERSION;
 const APP_SHELL = [
   "./",

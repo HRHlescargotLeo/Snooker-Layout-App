@@ -7,6 +7,8 @@ A top-down, to-scale snooker table and English 8-ball pool table in a single web
 - **Two tables:** full-size snooker and 7 ft English pool (blackball). Each tab keeps its own position and undo history, so switching doesn't lose anything.
 - The table, markings, balls and pocket jaws are drawn to scale in millimetres.
 - Drag balls into place. Balls can't overlap and stay inside the cushions.
+- **Tap to place:** tap a ball to select it, then tap where it should go. Tap again to adjust it, or tap the ball itself to finish. On a computer, click instead of tapping.
+- **Zoom:** pinch with two fingers, double-tap the cloth, or use the − / + buttons in the corner of the table. **Fit** shows the whole table again. When zoomed in, drag the cloth with one finger to move around. On a computer, use Ctrl or ⌘ + scroll, trackpad pinch, or the + / − / 0 keys.
 - Drag a ball off the table to pot it. Tap it in the tray to respot it, or drag it back onto the table. In pool, object balls respot on the black spot, or as close behind it as possible.
 - **Snap** (on by default): a ball dropped close to a free spot, another ball or a cushion clicks into place on the spot, touching the ball or touching the cushion. Turn it off to set small gaps by hand.
 - Undo, remove reds (snooker) or reds and yellows (pool), and reset to the break-off.
