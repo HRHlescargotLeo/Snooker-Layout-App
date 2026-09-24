@@ -309,7 +309,7 @@ summary{cursor:pointer;font:600 13px/1.4 var(--display);letter-spacing:.1em;text
     <div id="pp-list">
       <ul class="pp-tips">
         <li>Take one to three photos with all four corner pockets in the frame.</li>
-        <li>Best results: one photo from each end of the table, with the phone held up high.</li>
+        <li>Best results: one photo from each end of the table, with the phone held as high as you can. The lower the phone, the more the balls streak.</li>
         <li>A third photo from the side helps when balls are bunched together.</li>
       </ul>
       <div class="pp-slots" id="pp-slots"></div>
@@ -323,7 +323,7 @@ summary{cursor:pointer;font:600 13px/1.4 var(--display);letter-spacing:.1em;text
       <p class="hint" id="pp-msg" aria-live="polite"></p>
     </div>
     <div id="pp-edit" hidden>
-      <p class="hint">Drag each marker to the corner of the cloth, where the two cushions meet inside the pocket. If the ends are the wrong way round, use Turn.</p>
+      <p class="hint">Drag each marker to the corner of the cloth, where the two cushions meet inside the pocket. The dashed yellow line<span class="snk-only"> and D</span> should land on the table's own baulk line<span class="snk-only"> and D</span>. If they're at the wrong end, tap Turn twice.</p>
       <div class="pp-editor"><canvas id="pp-canvas" aria-label="Photo with corner markers"></canvas></div>
       <p class="label pp-sub">Straightened view</p>
       <p class="hint">The dashed lines should sit on the table's own baulk line<span class="snk-only">, D</span> and cushions.</p>
@@ -1060,7 +1060,30 @@ function estimatePose(H,w,h,fixedF){
 }
 
 /* ---------- loading ---------- */
+// The lens's 35 mm-equivalent focal length from the photo's EXIF data, if the phone recorded it.
+// It gives the camera's field of view directly, which is steadier than working it out from the table.
+async function exifFocal35(file){
+  try{
+    const buf=new DataView(await file.slice(0,262144).arrayBuffer());
+    if(buf.getUint16(0)!==0xFFD8)return null;
+    let o=2;
+    while(o+4<buf.byteLength){
+      const mk=buf.getUint16(o), len=buf.getUint16(o+2);
+      if(mk===0xFFE1&&buf.getUint32(o+4)===0x45786966){
+        const t=o+10, le=buf.getUint16(t)===0x4949, u16=p=>buf.getUint16(t+p,le), u32=p=>buf.getUint32(t+p,le);
+        const ifd=(p,tag)=>{const n=u16(p);for(let i=0;i<n;i++){const e=p+2+i*12;if(u16(e)===tag)return e;}return -1;};
+        const ifd0=u32(4), ex=ifd(ifd0,0x8769); if(ex<0)return null;
+        const exOff=u32(ex+8), fe=ifd(exOff,0xA405);
+        if(fe>=0){const v=u16(fe+8);if(v>8&&v<300)return v;}
+        return null;
+      }
+      if((mk&0xFF00)!==0xFF00)break; o+=2+len;
+    }
+  }catch(e){}
+  return null;
+}
 function loadPhoto(file){
+  const f35=exifFocal35(file);
   return new Promise((res,rej)=>{
     const url=URL.createObjectURL(file), img=new Image();
     img.onload=()=>{
@@ -1069,7 +1092,7 @@ function loadPhoto(file){
       const cv=document.createElement("canvas"); cv.width=w; cv.height=h;
       const cx=cv.getContext("2d",{willReadFrequently:true}); cx.drawImage(img,0,0,w,h);
       URL.revokeObjectURL(url);
-      res({canvas:cv,w,h,data:cx.getImageData(0,0,w,h),corners:null,H:null,pose:null,name:file.name||"Photo"});
+      f35.then(v=>res({canvas:cv,w,h,data:cx.getImageData(0,0,w,h),corners:null,H:null,pose:null,name:file.name||"Photo",f35:v}));
     };
     img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error("That file couldn't be opened as a photo."));};
     img.src=url;
@@ -1197,13 +1220,19 @@ function baulkScore(ph,g,H){
   const pts=[];
   for(let k=0;k<=40;k++){const y=g.W*(0.08+0.84*k/40);pts.push([g.baulk,y,1,0]);}
   if(g.D)for(let k=0;k<=24;k++){const a=Math.PI/2+Math.PI*k/24;pts.push([g.baulk+g.D*Math.cos(a),g.W/2+g.D*Math.sin(a),-Math.cos(a),-Math.sin(a)]);}
-  let s=0,n=0;
+  const vals=[];
   for(const [x,y,nx,ny] of pts){
-    const [u,v]=hApply(H,x,y), [u1,v1]=hApply(H,x+nx*30,y+ny*30), [u2,v2]=hApply(H,x-nx*30,y-ny*30);
-    if(u<1||v<1||u>=ph.w-1||v>=ph.h-1)continue;
-    const on=lum(u,v), off=(lum(u1,v1)+lum(u2,v2))/2+1; s+=Math.max(-0.5,Math.min(2,(on-off)/off)); n++;
+    const [u,v]=hApply(H,x,y);
+    if(u<2||v<2||u>=ph.w-2||v>=ph.h-2)continue;
+    // step off the line far enough to be clear of it in the photo (at least 5 px), however foreshortened
+    let off=null;
+    for(const dmm of [25,50,100,200]){const [u1,v1]=hApply(H,x+nx*dmm,y+ny*dmm),[u2,v2]=hApply(H,x-nx*dmm,y-ny*dmm);
+      if(Math.hypot(u1-u,v1-v)>=5&&Math.hypot(u2-u,v2-v)>=5){off=(lum(u1,v1)+lum(u2,v2))/2+1;break;}}
+    if(off==null)continue;
+    vals.push(Math.max(-0.5,Math.min(2,(lum(u,v)-off)/off)));
   }
-  return n?s/n:0;
+  if(!vals.length)return 0;
+  vals.sort((a,b)=>a-b); return vals[vals.length>>1]*0.6+vals.reduce((a,b)=>a+b,0)/vals.length*0.4;
 }
 function autoCorners(ph,g){
   const cq=clothQuad(ph); if(!cq)return null;
@@ -1234,7 +1263,7 @@ function classify(r,gc,b,vref,types){
   const out={};let tot=0;
   for(const t of types){const p=PROTO[t]; if(!p)continue;
     const ax=s*Math.cos(h*Math.PI/180),ay=s*Math.sin(h*Math.PI/180),bx=p[1]*Math.cos(p[0]*Math.PI/180),by=p[1]*Math.sin(p[0]*Math.PI/180);
-    const d2=wc*((ax-bx)**2+(ay-by)**2)*4+Math.log(vr/p[2])**2*1.4;
+    const d2=wc*((ax-bx)**2+(ay-by)**2)*4+Math.log(vr/p[2])**2*0.55;
     const l=Math.exp(-d2/0.09); out[t]=l; tot+=l;}
   for(const t in out)out[t]=tot>1e-12?out[t]/tot:1/Object.keys(out).length;
   return out;
@@ -1313,6 +1342,11 @@ function detectBalls(ph,g){
     }
     for(const c of picks)if(c.n){c.i=c.ni;c.j=c.nj;}
   }
+  // a long streak can end up as two picks on the same ball: keep the fuller one
+  for(const c of picks)c.g=geo(c.i,c.j);
+  picks.sort((p,q)=>(q.n||0)-(p.n||0));
+  for(let a1=0;a1<picks.length;a1++)for(let b1=picks.length-1;b1>a1;b1--){
+    const p=picks[a1],q=picks[b1];if(Math.min(sdist(q.i,q.j,p),sdist(p.i,p.j,q))<1.5*rp){p.n+=q.n||0;picks.splice(b1,1);}}
   const dets=[];
   const types=Object.keys(g.colours);
   for(const c of picks){
@@ -1328,14 +1362,30 @@ function detectBalls(ph,g){
     px.sort((p,q)=>V[p]-V[q]);
     const lo=Math.floor(px.length*0.55),hi=Math.max(lo+1,Math.floor(px.length*0.92)); // lit top, minus glare
     const rs=[],gs=[],bs=[];for(let t=lo;t<hi;t++){const o=px[t]*4;rs.push(d[o]);gs.push(d[o+1]);bs.push(d[o+2]);}
-    const vref=ref(c.i,c.j,refV)/255;
-    const probs=classify(med(rs),med(gs),med(bs),vref,types);
+    const vref=ref(c.i,c.j,refV)/255, rgb=[med(rs),med(gs),med(bs)];
+    const probs=classify(rgb[0],rgb[1],rgb[2],vref,types);
     // undo the lean: the patch centre is where the ray through the ball's centre (r above the cloth) meets the cloth
     let [x,y]=toMm(c.i,c.j), weight=1;
-    if(pose){const Hc=pose.height, cx=pose.cam[0], cy=pose.cam[1];
-      x=cx+(x-cx)*(Hc-R0)/Hc; y=cy+(y-cy)*(Hc-R0)/Hc; weight=1/(c.g.k*c.g.k);}
+    if(pose){const Hc=pose.height, cx=pose.cam[0], cy=pose.cam[1], k=c.g.k;
+      const x1=cx+(x-cx)*(Hc-R0)/Hc, y1=cy+(y-cy)*(Hc-R0)/Hc;
+      // From a low angle a ball is a long streak and small errors in the camera height matter more.
+      // The streak's near end (towards the camera, where the ball meets the cloth) is a steadier guide.
+      const own=[];const RR=Math.ceil(1.3*rp*k)+2;
+      for(let j=Math.max(0,Math.round(c.j)-RR);j<=Math.min(h-1,Math.round(c.j)+RR);j++)
+        for(let i=Math.max(0,Math.round(c.i)-RR);i<=Math.min(w-1,Math.round(c.i)+RR);i++){
+          const kk=j*w+i;if(!mask[kk])continue;const dd=sdist(i,j,c);if(dd>1.12*rp)continue;
+          if(c.near&&c.near.some(p=>sdist(i,j,p)<dd))continue;own.push((i-c.i)*c.g.ux+(j-c.j)*c.g.uy);}
+      if(own.length>10&&k>1.3){
+        own.sort((a,b)=>a-b);const t=own[Math.floor(own.length*0.04)];
+        const sin=1/k,cos=Math.sqrt(Math.max(0,1-sin*sin)),half=(1-cos)/sin;
+        const [nx,ny]=toMm(c.i+t*c.g.ux,c.j+t*c.g.uy);
+        const x2=nx+c.g.ux*R0*(half+0.25), y2=ny+c.g.uy*R0*(half+0.25);
+        const wN=Math.max(0,Math.min(0.85,(k-1.4)/1.6));
+        x=x1*(1-wN)+x2*wN; y=y1*(1-wN)+y2*wN;
+      }else{x=x1;y=y1;}
+      weight=1/(k*k);}
     if(x<-R0||y<-R0||x>g.L+R0||y>g.W+R0)continue;
-    dets.push({x,y,probs,weight,cover:Math.min(1,cover)});
+    dets.push({x,y,probs,rgb,vref,weight,k:pose?c.g.k:1,cover:Math.min(1,cover)});
   }
   return dets;
 }
@@ -1354,6 +1404,19 @@ function fuseDetections(photos,g){
     const W=best.m.reduce((s,q)=>s+q.weight,0);
     best.x=best.m.reduce((s,q)=>s+q.x*q.weight,0)/W;best.y=best.m.reduce((s,q)=>s+q.y*q.weight,0)/W;
   }
+  // Second pass: from low angles the same ball can land a few centimetres apart in different photos.
+  // Merge clusters from different photos that are close, allowing more room the flatter the view.
+  const kOf=c=>Math.max(...c.m.map(d=>d.k||1));
+  for(let merged=true;merged;){merged=false;
+    for(let i=0;i<cl.length&&!merged;i++)for(let j=i+1;j<cl.length&&!merged;j++){
+      const A=cl[i],B=cl[j];if([...A.views].some(v=>B.views.has(v)))continue;
+      const tol=Math.min(3.2*R0,R0*(1+0.35*(kOf(A)+kOf(B))));
+      if(Math.hypot(A.x-B.x,A.y-B.y)>=tol)continue;
+      A.m.push(...B.m);B.views.forEach(v=>A.views.add(v));
+      const W=A.m.reduce((s,q)=>s+q.weight,0);
+      A.x=A.m.reduce((s,q)=>s+q.x*q.weight,0)/W;A.y=A.m.reduce((s,q)=>s+q.y*q.weight,0)/W;
+      cl.splice(j,1);merged=true;}
+  }
   for(const c of cl){
     const p={};let tot=0;
     for(const d of c.m)for(const t in d.probs){p[t]=(p[t]||0)+d.probs[t]*(0.4+d.weight);tot+=d.probs[t]*(0.4+d.weight);}
@@ -1365,7 +1428,7 @@ function fuseDetections(photos,g){
     c.support=c.m.reduce((s,d)=>s+d.cover,0)/nv;
   }
   // a patch seen in only one of several photos, weakly, is most likely not a ball
-  return cl.filter(c=>nv===1||c.seen>1||c.m[0].cover>0.7);
+  return cl.filter(c=>nv===1||c.seen>1||(c.m[0].cover>0.85&&(c.m[0].k||1)<2.4));
 }
 function assignTypes(cl,g,nv){
   const cap={};g.balls.forEach(b=>cap[b.type]=(cap[b.type]||0)+1);
@@ -1392,17 +1455,65 @@ function relaxBalls(g){
 }
 // Photos from the same phone share a focal length. Pool the per-photo estimates with a typical
 // phone value (about 0.6 x the image diagonal), trusting each estimate as far as its geometry allows.
+// A 35 mm frame's diagonal is 43.27 mm, so focal/diagonal = f35/43.27 whatever the photo's size.
 function shareFocal(photos){
-  let sw=1,sl=Math.log(0.6);
-  for(const p of photos){const q=estimatePose(p.H,p.w,p.h);const wt=q.consistency<0.1?3:q.consistency<0.3?1:0.25;
+  // Estimates from the table's shape are shaky when the photo is taken from low down, so a typical phone
+  // lens (about 0.57 x the diagonal) carries real weight unless the photos agree strongly among themselves.
+  let sw=2,sl=2*Math.log(0.57);
+  for(const p of photos){if(p.f35)continue;const q=estimatePose(p.H,p.w,p.h);const wt=q.consistency<0.05?2:q.consistency<0.15?0.7:0.2;
     sw+=wt;sl+=wt*Math.log(q.fGeo/Math.hypot(p.w,p.h));}
-  const rel=Math.exp(sl/sw);
-  for(const p of photos)p.pose=estimatePose(p.H,p.w,p.h,rel*Math.hypot(p.w,p.h));
+  const exif=photos.filter(p=>p.f35);
+  const rel=exif.length?exif.reduce((s,p)=>s+p.f35/43.27,0)/exif.length:Math.exp(sl/sw);
+  for(const p of photos)p.pose=estimatePose(p.H,p.w,p.h,(p.f35?p.f35/43.27:rel)*Math.hypot(p.w,p.h));
 }
+// Warm or cool lights tint every ball. The cue ball should be neutral, so use it to correct the others.
+function whiteBalance(dets,g){
+  const types=Object.keys(g.colours);
+  const cand=dets.filter(d=>d.probs.white>0.25||(d.vref&&Math.max(...d.rgb)/255/d.vref>1.5&&Math.max(...d.rgb)-Math.min(...d.rgb)<0.45*Math.max(...d.rgb)));
+  if(!cand.length)return;
+  const wb=cand.sort((a,b)=>(b.probs.white||0)-(a.probs.white||0)||Math.max(...b.rgb)-Math.max(...a.rgb))[0];
+  const m=(wb.rgb[0]+wb.rgb[1]+wb.rgb[2])/3; if(m<40)return;
+  const gain=wb.rgb.map(v=>Math.max(0.6,Math.min(1.6,m/Math.max(1,v))));
+  for(const d of dets){const c=d.rgb.map((v,i)=>Math.min(255,v*gain[i]));d.probs=classify(c[0],c[1],c[2],d.vref,types);}
+}
+// How well two photos' ball positions line up (share of balls in the smaller set with a partner nearby).
+function agreement(a,b,tol){
+  if(!a.length||!b.length)return 0;
+  let m=0;for(const p of a)if(b.some(q=>Math.hypot(p.x-q.x,p.y-q.y)<tol))m++;
+  return m/Math.min(a.length,b.length);
+}
+const rot2=c=>[c[2],c[3],c[0],c[1]];
 function buildFromPhotos(g){
   const photos=g.photoSet.filter(p=>p.H);
   shareFocal(photos);
-  for(const p of photos){p.dets=detectBalls(p,g);}
+  const f=photos.map(p=>p.pose.f/Math.hypot(p.w,p.h));
+  // Try each photo both ways round (unless the user turned it themselves). Choose the combination whose
+  // balls line up best between photos; the table's baulk line and D decide which way round the whole set goes.
+  const R0=objR(g);
+  const variants=photos.map((p,i)=>{
+    const opts=p.orientLocked?[p.corners]:[p.corners,rot2(p.corners)];
+    return opts.map(c=>{const v={...p,corners:c.map(q=>q.slice())};v.H=homography(tableCorners(g),v.corners);
+      v.pose=estimatePose(v.H,p.w,p.h,f[i]*Math.hypot(p.w,p.h));v.dets=detectBalls(v,g);whiteBalance(v.dets,g);
+      v.baulk=baulkScore(p,g,v.H);return v;});
+  });
+  // Turning every photo round together keeps them agreeing with each other, so group those pairs:
+  // agreement picks the group, the baulk line and D pick the member.
+  const combos=variants.reduce((acc,opts)=>acc.flatMap(a=>opts.map((o,oi)=>[...a,{v:o,oi}])),[[]]);
+  const groups=new Map();
+  for(const combo of combos){
+    let ag=0,np=0;
+    for(let i=0;i<combo.length;i++)for(let j=i+1;j<combo.length;j++){ag+=agreement(combo[i].v.dets,combo[j].v.dets,2*R0);np++;}
+    const key=combo.map(c=>c.oi^combo[0].oi).join("");
+    const item={combo:combo.map(c=>c.v),a:np?ag/np:1,b:combo.reduce((s,c)=>s+c.v.baulk,0)};
+    if(!groups.has(key))groups.set(key,[]);groups.get(key).push(item);
+  }
+  let bestG=null;
+  for(const items of groups.values()){const a=Math.max(...items.map(i=>i.a));if(!bestG||a>bestG.a)bestG={a,items};}
+  const best=bestG.items.sort((x,y)=>y.b-x.b)[0]; best.a=bestG.a;
+  g._orient=[...groups.values()].flat().map(i=>({a:+i.a.toFixed(2),b:+i.b.toFixed(3)}));
+  const turned=[];
+  best.combo.forEach((v,i)=>{const p=photos[i];if(v.corners[0][0]!==p.corners[0][0]||v.corners[0][1]!==p.corners[0][1])turned.push(g.photoSet.indexOf(p)+1);p.corners=v.corners;p.H=v.H;p.pose=v.pose;p.dets=v.dets;p.rect=v.rect;p.baulk=v.baulk;});
+  const endsUnsure=photos.length===1&&!photos[0].orientLocked&&Math.abs(variants[0][0].baulk-variants[0][1].baulk)<0.04;
   const cl=fuseDetections(photos,g), found=assignTypes(cl,g,photos.length); g._cl=cl;
   pushHistory();
   const pool={};found.forEach(f=>(pool[f.type]=pool[f.type]||[]).push(f));
@@ -1414,7 +1525,7 @@ function buildFromPhotos(g){
   photos.forEach(p=>{const c=document.createElement("canvas");c.width=p.rect.w;c.height=p.rect.h;
     c.getContext("2d").putImageData(p.rect.img,0,0);p.underlay=c.toDataURL("image/jpeg",0.82);p.umargin=p.rect.margin;});
   g.underlayIdx=photos.length?0:-1;
-  return {placed,flagged,missing:g.balls.length-placed,views:photos.length};
+  return {placed,flagged,missing:g.balls.length-placed,views:photos.length,disagree:photos.length>1&&best.a<0.35,endsUnsure,turned};
 }
 
 /* ---------- photo panel ---------- */
@@ -1497,6 +1608,15 @@ function drawEditor(){
   const P=ph.corners.map(p=>[p[0]*s,p[1]*s]);
   cx.lineWidth=2*dpr;cx.strokeStyle="rgba(255,255,255,.9)";cx.beginPath();P.forEach((p,i)=>i?cx.lineTo(...p):cx.moveTo(...p));cx.closePath();cx.stroke();
   cx.lineWidth=4*dpr;cx.strokeStyle="#FFE58A";cx.beginPath();cx.moveTo(...P[0]);cx.lineTo(...P[1]);cx.stroke();
+  if(ph.H){ // where the table's markings should be, given these corners
+    const pr=(x,y)=>{const q=hApply(ph.H,x,y);return [q[0]*s,q[1]*s];};
+    cx.save();cx.strokeStyle="#FFE58A";cx.lineWidth=2*dpr;cx.setLineDash([7*dpr,5*dpr]);cx.beginPath();
+    for(let k=0;k<=30;k++){const p=pr(G.baulk,G.W*k/30);k?cx.lineTo(...p):cx.moveTo(...p);}
+    if(G.D){for(let k=0;k<=36;k++){const a=Math.PI/2+Math.PI*k/36,p=pr(G.baulk+G.D*Math.cos(a),G.W/2+G.D*Math.sin(a));k?cx.lineTo(...p):cx.moveTo(...p);}}
+    cx.stroke();cx.setLineDash([]);
+    for(const k in G.spots){const p=pr(...G.spots[k]);cx.beginPath();cx.arc(p[0],p[1],3*dpr,0,Math.PI*2);cx.fillStyle="#FFE58A";cx.fill();}
+    cx.restore();
+  }
   cx.font=`600 ${12*dpr}px system-ui,sans-serif`;cx.textAlign="center";cx.textBaseline="middle";
   const mid=[(P[0][0]+P[1][0])/2,(P[0][1]+P[1][1])/2];
   label(cx,"Baulk end",mid[0],mid[1]+16*dpr,dpr,"#FFE58A");
@@ -1548,9 +1668,9 @@ function edEnd(e){const dr=edState&&edState.drag;if(!dr||e.pointerId!==dr.id)ret
   setCorners(editing,G,editing.corners);drawEditor();drawPreview();}
 ppCanvas.addEventListener("pointerup",edEnd);ppCanvas.addEventListener("pointercancel",edEnd);
 document.getElementById("pp-turn").addEventListener("click",()=>{
-  const c=editing.corners; setCorners(editing,G,[c[1],c[2],c[3],c[0]]); drawEditor(); drawPreview();});
+  const c=editing.corners; setCorners(editing,G,[c[1],c[2],c[3],c[0]]); editing.orientLocked=true; drawEditor(); drawPreview();});
 document.getElementById("pp-auto").addEventListener("click",()=>{
-  const c=autoCorners(editing,G); if(c){setCorners(editing,G,c);drawEditor();drawPreview();document.getElementById("pp-edit-msg").textContent="";}
+  const c=autoCorners(editing,G); if(c){setCorners(editing,G,c);editing.orientLocked=false;drawEditor();drawPreview();document.getElementById("pp-edit-msg").textContent="";}
   else document.getElementById("pp-edit-msg").textContent="The table couldn't be found automatically. Drag the four markers onto the corners.";});
 document.getElementById("pp-done").addEventListener("click",showList);
 window.addEventListener("resize",()=>{if(editing){layoutEditor();drawEditor();drawPreview();}});
@@ -1563,6 +1683,9 @@ ppBuild.addEventListener("click",()=>{
     const parts=[`Placed ${res.placed} of ${G.balls.length} balls from ${res.views} photo${res.views>1?"s":""}.`];
     if(res.flagged)parts.push(`${res.flagged} marked in orange to check.`);
     if(res.missing)parts.push(`${res.missing} not found: they're in the tray.`);
+    if(res.disagree)parts.unshift("The photos don't line up well, so check the corners and the Baulk end on each one (From photos, Adjust corners).");
+    if(res.turned.length&&!res.disagree)parts.push(`Photo ${res.turned.join(" and ")} was the wrong way round, so it was turned to match.`);
+    if(res.endsUnsure)parts.push("Check the baulk end is the right way round: the D in the photo should match the board.");
     G.notice=parts.join(" "); renderUnderlay(); render();
   },30);
 });

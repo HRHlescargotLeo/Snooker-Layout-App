@@ -28,11 +28,11 @@ A top-down, to-scale snooker table and English 8-ball pool table in a single web
 ## Setting up from photos
 
 1. Open **From photos** (under More on a phone).
-2. Take or choose one to three photos. For the best results, take one from each end of the table with the phone held up high, and keep all four corner pockets in the frame. A third photo from the side helps when balls are bunched together.
-3. For each photo, check the four corner markers. They go on the corner of the cloth, where the cushions meet inside each pocket. The straightened view below the photo should line up with the table's own baulk line and D. If the ends are swapped, tap **Turn**.
+2. Take or choose one to three photos. For the best results, take one from each end of the table with the phone held as high as you can (the lower the phone, the more the balls streak), and keep all four corner pockets in the frame. A third photo from the side helps when balls are bunched together.
+3. For each photo, check the four corner markers. They go on the corner of the cloth, where the cushions meet inside each pocket. The app draws the baulk line and D onto the photo in dashed yellow, and they should land on the table's own markings. If they're at the wrong end, tap **Turn** twice. With two or more photos, the app also checks the ends itself: it turns any photo that doesn't line up with the others, and says so.
 4. Tap **Build layout**.
 
-**How it works.** The four corners give the mapping from the photo to the table in millimetres, and also where the camera was. A ball's centre sits 26 mm above the cloth, so in a straightened photo it appears to lean away from the camera. The app corrects for that using the camera position. When there are several photos, it merges each ball's sightings and takes a vote on the colour.
+**How it works.** If the photo records the lens's focal length (most phones do), the app uses it to work out the camera's position accurately. From a low angle it places each ball by the point where it meets the cloth, and it uses the cue ball to correct for warm or cool lighting. The four corners give the mapping from the photo to the table in millimetres, and also where the camera was. A ball's centre sits 26 mm above the cloth, so in a straightened photo it appears to lean away from the camera. The app corrects for that using the camera position. When there are several photos, it merges each ball's sightings and takes a vote on the colour.
 
 In tests on rendered photos with known ball positions, two end-on photos placed every ball to within about 1 cm. Real photos will be less tidy than that, so check the balls ringed in orange.
 
