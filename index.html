@@ -1,0 +1,813 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="A to-scale snooker and English pool table. Drag the balls to recreate any position and share it as a link.">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1B8540">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Snooker Pool">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="64x64" href="icons/favicon-64.png">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0}
+[hidden]{display:none!important}
+</style>
+<title>Snooker &amp; Pool Layout Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@500;600;700&family=Source+Sans+3:wght@400;600&display=swap">
+<style>
+:root{
+  --bg:#E9ECE6; --panel:#F6F7F3; --ink:#18201C; --muted:#56615B; --line:#CDD3CB;
+  --accent:#2B63A8; --accent-ink:#FFFFFF; --btn:#FFFFFF; --btn-hover:#EEF2EC;
+  --tray:#DDE2DA; --scrim:rgba(16,21,18,.45);
+  --display:"Saira Semi Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:"Source Sans 3",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#101512; --panel:#171E1A; --ink:#E3E8E3; --muted:#98A39C; --line:#2A342E;
+    --accent:#6FA3E0; --accent-ink:#0D1510; --btn:#1D2520; --btn-hover:#253029; --tray:#0B0F0D; --scrim:rgba(0,0,0,.6);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#101512; --panel:#171E1A; --ink:#E3E8E3; --muted:#98A39C; --line:#2A342E;
+  --accent:#6FA3E0; --accent-ink:#0D1510; --btn:#1D2520; --btn-hover:#253029; --tray:#0B0F0D; --scrim:rgba(0,0,0,.6);
+}
+html,body{background:var(--bg);color:var(--ink)}
+body{font-family:var(--body);font-size:15px;line-height:1.5;padding-inline:16px;padding-block:20px 32px}
+
+/* ---- desktop / tablet layout ---- */
+.app{max-width:1280px;margin:0 auto;display:grid;gap:12px 16px;
+  grid-template-columns:max-content minmax(0,1fr) auto;
+  grid-template-areas:"head head head" "tabs tools2 tools" "share share share" "stage stage stage" "status status status" "tray tray tray" "specs specs specs";}
+@media (max-width:1360px){.app{grid-template-columns:auto minmax(0,1fr);grid-template-areas:"head head" "tabs tabs" "tools tools2" "share share" "stage stage" "status status" "tray tray" "specs specs"}}
+.head{grid-area:head;align-self:end}
+.tabs{grid-area:tabs;align-self:end}
+.tools{grid-area:tools;display:flex;flex-wrap:wrap;gap:8px;align-self:end}
+.more{display:contents}
+.tools2{grid-area:tools2;display:flex;flex-wrap:wrap;gap:8px;align-self:end;justify-content:flex-end}
+#sharebox,#installhelp{grid-area:share}
+.specs-wrap{grid-area:specs}
+.stage{grid-area:stage;position:relative;display:flex;justify-content:center}
+.status{grid-area:status}
+.traybar{grid-area:tray}
+.sheet-head,.only-phone{display:none}
+.scrim{display:none}
+
+h1{font-family:var(--display);font-weight:700;font-size:clamp(24px,3.2vw,34px);letter-spacing:.01em;margin:0;line-height:1.05;text-wrap:balance}
+.lede{margin:4px 0 0;color:var(--muted);max-width:62ch}
+button{font:600 14px/1 var(--display);letter-spacing:.04em;text-transform:uppercase;color:var(--ink);background:var(--btn);border:1px solid var(--line);border-radius:6px;padding:9px 12px;cursor:pointer;touch-action:manipulation}
+button:hover{background:var(--btn-hover)}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button:disabled{opacity:.45;cursor:default}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+
+/* game tabs: a segmented control */
+.tabs{display:flex;background:var(--tray);border-radius:8px;padding:3px;width:max-content;max-width:100%}
+.tabs button{border:none;background:transparent;border-radius:6px;padding:9px 18px;font-size:15px;color:var(--muted);white-space:nowrap}
+.tabs button:hover{background:var(--btn-hover);color:var(--ink)}
+.tabs button[aria-selected="true"]{background:var(--btn);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.18)}
+.tabs .sub{font-weight:500;letter-spacing:.02em;text-transform:none;font-family:var(--body);font-size:13px;color:var(--muted);margin-left:6px}
+
+#table{display:block;width:100%;height:auto;max-height:82vh;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.ball{cursor:grab}
+.ball:focus{outline:none}
+.ball .ring{opacity:0;fill:none;stroke:#FFFFFF;stroke-width:4;stroke-dasharray:9 6;pointer-events:none}
+.ball.sel .ring,.ball:focus-visible .ring{opacity:1}
+.ball.snapped .ring{stroke-dasharray:none;stroke:#FFE58A;stroke-width:5}
+.ball.removing{opacity:.45}
+.dragging .ball{cursor:grabbing}
+
+.bar{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 12px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;min-height:44px;box-sizing:border-box}
+.status{font-variant-numeric:tabular-nums}
+.status b{font-family:var(--display);font-weight:700;letter-spacing:.03em;text-transform:uppercase}
+.status .dim{color:var(--muted)}
+.status .tag{background:var(--tray);border-radius:4px;padding:1px 7px;font-size:14px}
+.label{font:600 12px/1.2 var(--display);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0}
+#tray{display:flex;flex-wrap:wrap;gap:6px;align-items:center;flex:1;min-width:0}
+#tray .empty{color:var(--muted);font-size:14px}
+.chip{width:30px;height:30px;flex:none;padding:0;border-radius:50%;border:none;touch-action:none;box-shadow:inset -3px -4px 6px rgba(0,0,0,.35), 0 1px 2px rgba(0,0,0,.4)}
+.chip:hover{filter:brightness(1.08)}
+.hint{color:var(--muted);font-size:13.5px;margin:0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.share-row{display:grid;grid-template-columns:110px minmax(0,1fr) auto;gap:8px;align-items:center}
+.share-row label{font-size:14px;color:var(--muted)}
+.share-row input{font:14px/1.2 ui-monospace,SFMono-Regular,Consolas,monospace;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px 10px;min-width:0;width:100%;box-sizing:border-box}
+.share-row input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+@media (max-width:520px){.share-row{grid-template-columns:minmax(0,1fr) auto}.share-row label{grid-column:1/-1}}
+details{font-size:14px;color:var(--muted)}
+summary{cursor:pointer;font:600 13px/1.4 var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--ink)}
+.specs{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:4px 24px;margin:10px 0 0;padding:0;list-style:none;font-variant-numeric:tabular-nums}
+.specs b{color:var(--ink);font-weight:600}
+
+/* magnifier shown above the finger while dragging on a touch screen */
+.loupe{position:fixed;left:0;top:0;width:132px;height:132px;border-radius:50%;overflow:hidden;z-index:30;pointer-events:none;
+  border:3px solid #FFFFFF;box-shadow:0 6px 22px rgba(0,0,0,.45);background:#1B8540}
+.loupe svg{display:block;width:100%;height:100%}
+.loupe.snapped{border-color:#FFE58A}
+
+/* ---- phone layout: table fills the screen, controls docked at the bottom ---- */
+@media (max-width:700px), (max-height:520px) and (pointer:coarse){
+  html{height:100%;box-sizing:border-box}
+  body{height:100%;box-sizing:border-box;padding-block:8px;overflow:hidden}
+  .app{height:100%;gap:8px;grid-template-columns:minmax(0,1fr);
+    grid-template-rows:auto minmax(0,1fr) auto auto auto;
+    grid-template-areas:"tabs" "stage" "status" "tray" "tools"}
+  .head,.hint.desk{display:none}
+  .tabs{width:100%}
+  .tabs button{flex:1;padding:8px 6px}
+  .tabs .sub{display:none}
+  .status{height:58px;overflow:hidden;align-content:center}
+  .traybar.none{display:none}
+  .stage{min-height:0}
+  #table{position:absolute;inset:0;height:100%;max-height:none}
+  .tools{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+  .tools button{padding:12px 4px;font-size:13px}
+  .only-phone{display:inline-block}
+  .desk-only{display:none}
+  .bar{padding:6px 10px;min-height:40px;gap:4px 12px;font-size:14px}
+  #tray{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+  .chip{width:32px;height:32px}
+  .traybar .label{display:none}
+  /* the More sheet */
+  .more{display:none;position:fixed;left:0;right:0;bottom:0;z-index:20;max-height:78%;overflow:auto;
+    background:var(--panel);border-top:1px solid var(--line);border-radius:14px 14px 0 0;
+    padding:14px 16px calc(18px + env(safe-area-inset-bottom,0px));flex-direction:column;gap:14px;box-shadow:0 -8px 30px rgba(0,0,0,.3)}
+  .sheet-open .more{display:flex}
+  .sheet-open .scrim{display:block;position:fixed;inset:0;z-index:19;background:var(--scrim)}
+  .sheet-head{display:flex;justify-content:space-between;align-items:center}
+  .tools2{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .tools2 button{padding:12px 4px;font-size:13px}
+  #sharebox,#installhelp{background:transparent;border:none;padding:0}
+}
+/* phone held sideways: table on the left, controls in a column on the right */
+@media (max-height:520px) and (pointer:coarse) and (orientation:landscape){
+  body{padding-block:6px}
+  .app{grid-template-columns:minmax(0,1fr) 200px;grid-template-rows:auto minmax(0,1fr) auto auto;
+    grid-template-areas:"stage tabs" "stage status" "stage tray" "stage tools"}
+  .status{align-self:start;height:auto}
+  .tools{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <div class="head">
+    <h1>Snooker &amp; Pool Layout Board</h1>
+    <p class="lede">Drag the balls to recreate any position. The table, markings, balls and pocket jaws are all drawn to scale.</p>
+  </div>
+
+  <div class="tabs" role="tablist" aria-label="Game">
+    <button role="tab" id="tab-snooker" data-game="snooker" aria-selected="true" aria-controls="stage">Snooker<span class="sub">12 ft</span></button>
+    <button role="tab" id="tab-pool" data-game="pool" aria-selected="false" aria-controls="stage" tabindex="-1">English pool<span class="sub">7 ft, 8-ball</span></button>
+  </div>
+
+  <div class="tools" role="toolbar" aria-label="Table controls">
+    <button id="undo" type="button" disabled>Undo</button>
+    <button id="snap" type="button" aria-pressed="true" title="Snap to spots, cushions and touching balls">Snap on</button>
+    <button id="reset" type="button" class="primary">Reset<span class="desk-only"> to break-off</span></button>
+    <button id="morebtn" type="button" class="only-phone" aria-expanded="false" aria-controls="more">More</button>
+  </div>
+
+  <div class="scrim" id="scrim"></div>
+  <div class="more" id="more" role="region" aria-label="More options">
+    <div class="sheet-head">
+      <p class="label">Snooker &amp; Pool Layout Board</p>
+      <button id="closemore" type="button">Close</button>
+    </div>
+    <div class="tools2" role="toolbar" aria-label="More table controls">
+      <button id="clearballs" type="button">Remove reds</button>
+      <button id="rotate" type="button">Rotate view</button>
+      <button id="share" type="button" aria-expanded="false" aria-controls="sharebox">Share layout</button>
+      <button id="install" type="button" hidden>Install app</button>
+    </div>
+
+    <section class="card" id="installhelp" hidden aria-labelledby="install-h">
+      <p class="label" id="install-h">Install on iPhone or iPad</p>
+      <p class="hint">Tap the Share button <span aria-hidden="true">(the square with an arrow)</span>, then choose <b>Add to Home Screen</b>. The board then opens full screen from its own icon and works offline.</p>
+    </section>
+
+    <section class="card share" id="sharebox" hidden aria-labelledby="share-h">
+      <p class="label" id="share-h">Share this layout</p>
+      <div class="share-row">
+        <label for="sharelink" id="sharelink-label">Link</label>
+        <input id="sharelink" type="text" readonly spellcheck="false">
+        <button id="copylink" type="button">Copy</button>
+      </div>
+      <div class="share-row">
+        <label for="pastecode">Open a code</label>
+        <input id="pastecode" type="text" spellcheck="false" placeholder="Paste a layout code or link">
+        <button id="loadcode" type="button">Load</button>
+      </div>
+      <p class="hint" id="sharemsg" aria-live="polite">Anyone who opens the link sees exactly this position.</p>
+    </section>
+
+    <div class="specs-wrap">
+      <details id="specs">
+        <summary>Dimensions used</summary>
+        <ul class="specs" id="specs-snooker">
+          <li>Playing area: <b>3,569 × 1,778 mm</b> (11 ft 8½ in × 5 ft 10 in)</li>
+          <li>Balls: <b>52.5 mm</b> diameter</li>
+          <li>Baulk line: <b>737 mm</b> from the bottom cushion face</li>
+          <li>D: semicircle of <b>292 mm</b> radius on the baulk line</li>
+          <li>Brown, yellow, green: centre and ends of the D; yellow on the right from baulk</li>
+          <li>Blue: centre spot. Pink: midway between blue and top cushion</li>
+          <li>Black: <b>324 mm</b> from the top cushion face</li>
+          <li>Reds: apex as close behind the pink as possible without touching</li>
+          <li>Corner pockets: <b>89 mm</b> at the fall, jaws cut along the pocket diagonal</li>
+          <li>Middle pockets: <b>108 mm</b> at the fall, rounded jaws flaring to the nose</li>
+          <li>Cushion rubber: <b>50 mm</b> from nose to rail</li>
+        </ul>
+        <ul class="specs" id="specs-pool" hidden>
+          <li>Playing area: <b>1,829 × 914 mm</b> (6 ft × 3 ft, the 7 ft league table)</li>
+          <li>Object balls: <b>50.8 mm</b> (2 in). Cue ball: <b>47.6 mm</b> (1⅞ in)</li>
+          <li>Baulk line: one fifth of the length, <b>366 mm</b> from the bottom cushion</li>
+          <li>Black spot: where the diagonals from the corner to the middle pockets cross, <b>1,372 mm</b> from the bottom cushion</li>
+          <li>Rack: black on the black spot, in the middle of the third row</li>
+          <li>Cue ball: starts in baulk, played from anywhere behind the baulk line</li>
+          <li>Pockets: <b>81 mm</b> between the jaws (1.6 × ball diameter), rounded like snooker pockets</li>
+          <li>Cushion rubber: <b>40 mm</b> from nose to rail</li>
+        </ul>
+        <p class="hint" style="margin-top:10px">Keyboard: with a ball selected, arrow keys nudge it 1&nbsp;mm (Shift for 10&nbsp;mm), Delete takes it off the table, Ctrl+Z undoes.</p>
+      </details>
+    </div>
+  </div>
+
+  <div class="stage" id="stage" role="tabpanel" aria-labelledby="tab-snooker"><svg id="table" role="application" aria-label="Table, top-down view"></svg></div>
+
+  <div class="bar status" id="status" aria-live="polite"></div>
+
+  <div class="bar traybar">
+    <p class="label">Off the table</p>
+    <div id="tray"></div>
+    <p class="hint desk">Tap a ball to respot it, or drag it onto the table.</p>
+  </div>
+</div>
+
+<div class="loupe" id="loupe" hidden><svg id="loupesvg"><use id="loupeuse" href="#world-snooker"></use></svg></div>
+
+<script>
+(function(){
+const NS="http://www.w3.org/2000/svg";
+const svg=document.getElementById("table");
+const stage=document.getElementById("stage");
+const el=(tag,attrs,parent)=>{const n=document.createElementNS(NS,tag);for(const k in attrs)n.setAttribute(k,attrs[k]);if(parent)parent.appendChild(n);return n;};
+function shade(hex,amt){const n=parseInt(hex.slice(1),16);let r=n>>16,g=n>>8&255,b=n&255;
+  const f=v=>Math.max(0,Math.min(255,Math.round(amt<0?v*(1+amt):v+(255-v)*amt)));return "#"+((1<<24)|(f(r)<<16)|(f(g)<<8)|f(b)).toString(16).slice(1);}
+
+/* =====================================================================
+   Game definitions. All measurements in millimetres; x runs from the
+   baulk cushion up the table, y from the left cushion (seen from baulk).
+   ===================================================================== */
+const SNOOKER=(()=>{
+  const L=3569, W=1778, R=26.25, MIDX=L/2, MIDY=W/2, BAULK=737, DR=292;
+  const spots={yellow:[BAULK,MIDY+DR], green:[BAULK,MIDY-DR], brown:[BAULK,MIDY],
+    blue:[MIDX,MIDY], pink:[(MIDX+L)/2,MIDY], black:[L-324,MIDY]};
+  const colours={
+    red:{c:"#C4122F",name:"Red"}, yellow:{c:"#F1C517",name:"Yellow"}, green:{c:"#0E6E3C",name:"Green"},
+    brown:{c:"#6A3A1C",name:"Brown"}, blue:{c:"#1B4FB5",name:"Blue"}, pink:{c:"#EE7FA6",name:"Pink"},
+    black:{c:"#141414",name:"Black"}, white:{c:"#F4F0E4",name:"Cue ball"}};
+  const cueStart=[BAULK-12, MIDY+DR*0.55];
+  return {
+    key:"snooker", prefix:"s1", L, W, C:50, RAIL:125, railRadius:70, chalk:3, spotR:6,
+    corner:{nose:97, fall:89, jaw:12, hole:52}, middle:{nose:122, fall:108, jaw:24, hole:58},
+    baulk:BAULK, D:DR, spots, colours, cueStart,
+    rankOrder:["red","white","yellow","green","brown","blue","pink","black"],
+    clearLabel:"Remove reds", clearTypes:["red"],
+    breakOff(){
+      const b=[{id:"white",type:"white",r:R,x:cueStart[0],y:cueStart[1],on:true}];
+      ["yellow","green","brown","blue","pink","black"].forEach(k=>b.push({id:k,type:k,r:R,x:spots[k][0],y:spots[k][1],on:true}));
+      const apex=spots.pink[0]+2*R+1.5, gap=0.25, dx=(2*R+gap)*Math.sqrt(3)/2; let n=1;
+      for(let row=0;row<5;row++)for(let j=0;j<=row;j++)
+        b.push({id:"red"+(n++),type:"red",r:R,x:apex+row*dx,y:MIDY+(j-row/2)*(2*R+gap),on:true});
+      return b;
+    },
+    summary(balls){const reds=balls.filter(x=>x.on&&x.type==="red").length, cols=balls.filter(x=>x.on&&x.type!=="red"&&x.type!=="white").length;
+      return `${reds} red${reds===1?"":"s"}, ${cols} colour${cols===1?"":"s"} on the table`;},
+    respotTarget(b,free,freeNear){
+      if(b.type==="red")return null; // reds use the default: nearest free point to the pack
+      if(b.type==="white")return freeNear(b,cueStart[0],cueStart[1],-1);
+      const own=spots[b.type]; if(free(b,own))return own.slice();
+      for(const k of ["black","pink","blue","brown","green","yellow"])if(free(b,spots[k]))return spots[k].slice();
+      return freeNear(b,own[0],own[1],1)||freeNear(b,own[0],own[1],-1);
+    },
+    packPoint:[spots.pink[0]+140, MIDY]
+  };
+})();
+
+const POOL=(()=>{
+  // 7 ft English pool (blackball) table: 72 x 36 in playing area.
+  const L=1829, W=914, R=25.4, RC=23.8125, MIDX=L/2, MIDY=W/2, BAULK=L/5;
+  const spots={black:[L*3/4, MIDY]}; // where the corner-to-middle-pocket diagonals cross
+  const colours={red:{c:"#CC1B2B",name:"Red"}, yellow:{c:"#F3C212",name:"Yellow"},
+    black:{c:"#141414",name:"Black"}, white:{c:"#F4F0E4",name:"Cue ball"}};
+  const cueStart=[BAULK-75, MIDY];
+  // Rack, apex towards baulk. Row by row from the apex; within a row, left to right as seen from baulk.
+  // Y = yellow, R = red, B = black (on the black spot, middle of row 3).
+  const RACK=["Y","RY","RBY","RRYY","YRRYR"];
+  return {
+    key:"pool", prefix:"p1", L, W, C:40, RAIL:95, railRadius:45, chalk:2.5, spotR:5,
+    corner:{nose:88, fall:81, jaw:9, hole:47}, middle:{nose:98, fall:81, jaw:18, hole:47},
+    baulk:BAULK, D:null, spots, colours, cueStart,
+    rankOrder:["red","yellow","black","white"],
+    clearLabel:"Remove reds & yellows", clearTypes:["red","yellow"],
+    breakOff(){
+      const b=[{id:"white",type:"white",r:RC,x:cueStart[0],y:cueStart[1],on:true}];
+      const gap=0.25, dx=(2*R+gap)*Math.sqrt(3)/2, bx=spots.black[0];
+      let nr=1, ny=1;
+      RACK.forEach((row,ri)=>{[...row].forEach((ch,j)=>{
+        const x=bx+(ri-2)*dx, y=MIDY+(j-ri/2)*(2*R+gap);
+        if(ch==="B")b.splice(1,0,{id:"black",type:"black",r:R,x,y,on:true});
+        else if(ch==="R")b.push({id:"red"+(nr++),type:"red",r:R,x,y,on:true});
+        else b.push({id:"yellow"+(ny++),type:"yellow",r:R,x,y,on:true});
+      });});
+      return b;
+    },
+    summary(balls){const n=t=>balls.filter(x=>x.on&&x.type===t).length;
+      const r=n("red"), y=n("yellow");
+      return `${r} red${r===1?"":"s"}, ${y} yellow${y===1?"":"s"}${n("black")?" and the black":""} on the table`;},
+    respotTarget(b,free,freeNear){
+      // Object balls go on the black spot, or as near behind it as possible.
+      if(b.type==="white")return freeNear(b,cueStart[0],cueStart[1],-1);
+      return freeNear(b,spots.black[0],spots.black[1],1)||freeNear(b,spots.black[0],spots.black[1],-1);
+    },
+    packPoint:[spots.black[0], MIDY]
+  };
+})();
+const GAMES={snooker:SNOOKER, pool:POOL};
+
+/* ---------- shared defs ---------- */
+const defs=el("defs",{},svg);
+function radial(id,stops,attrs){const g=el("radialGradient",Object.assign({id},attrs||{}),defs);stops.forEach(([o,c])=>el("stop",{offset:o,"stop-color":c},g));}
+for(const G of Object.values(GAMES))for(const k in G.colours){const c=G.colours[k].c;
+  radial(`g-${G.key}-${k}`,[["0",shade(c,.55)],["0.18",shade(c,.18)],["0.62",c],["1",shade(c,-.45)]],{cx:"0.36",cy:"0.34",r:"0.72"});}
+radial("g-cloth",[["0","#23974A"],["0.7","#1B8540"],["1","#146E33"]],{cx:"0.5",cy:"0.5",r:"0.75"});
+radial("g-hole",[["0","#000"],["0.7","#0A0806"],["1","#2A1B10"]],{});
+const wood=el("linearGradient",{id:"g-wood",x1:"0",y1:"0",x2:"1",y2:"1"},defs);
+[["0","#5A301C"],["0.5","#3E1F11"],["1","#57301B"]].forEach(([o,c])=>el("stop",{offset:o,"stop-color":c},wood));
+const blur=el("filter",{id:"f-shadow",x:"-50%",y:"-50%",width:"200%",height:"200%"},defs);
+el("feGaussianBlur",{stdDeviation:"5"},blur);
+
+/* ---------- geometry helpers ---------- */
+function roundedPath(pts){ // pts: [x,y,radius]; rounds each corner with a fillet of that radius
+  const n=pts.length; let d="";
+  for(let i=0;i<n;i++){
+    const [x,y,r]=pts[i];
+    if(!r){d+=(i?"L":"M")+x.toFixed(2)+" "+y.toFixed(2)+" ";continue;}
+    const p=pts[(i-1+n)%n], q=pts[(i+1)%n];
+    let ax=p[0]-x, ay=p[1]-y, bx=q[0]-x, by=q[1]-y;
+    const la=Math.hypot(ax,ay), lb=Math.hypot(bx,by); ax/=la;ay/=la;bx/=lb;by/=lb;
+    const th=Math.acos(Math.max(-1,Math.min(1,ax*bx+ay*by)));
+    const t=r/Math.tan(th/2);
+    const t1=[x+ax*t,y+ay*t], t2=[x+bx*t,y+by*t];
+    const cross=(x-p[0])*(q[1]-y)-(y-p[1])*(q[0]-x);
+    d+=(i?"L":"M")+t1[0].toFixed(2)+" "+t1[1].toFixed(2)+" A"+r+" "+r+" 0 0 "+(cross>0?1:0)+" "+t2[0].toFixed(2)+" "+t2[1].toFixed(2)+" ";
+  }
+  return d+"Z";
+}
+
+/* ---------- build one table ---------- */
+function buildWorld(G){
+  const {L,W,C,RAIL,corner:CO,middle:MI}=G, M=C+RAIL, MIDX=L/2, MIDY=W/2;
+  G.M=M;
+  const world=el("g",{id:"world-"+G.key},svg);
+  el("rect",{x:-M,y:-M,width:L+2*M,height:W+2*M,rx:G.railRadius,fill:"url(#g-wood)"},world);
+  el("rect",{x:-M+8,y:-M+8,width:L+2*M-16,height:W+2*M-16,rx:G.railRadius-7,fill:"none",stroke:"#7A4527","stroke-opacity":".5","stroke-width":2.5},world);
+  el("rect",{x:-C,y:-C,width:L+2*C,height:W+2*C,fill:"url(#g-cloth)"},world);
+  // Corner jaw: facing runs parallel-ish to the pocket diagonal. Middle jaw: rounded, flaring to the nose.
+  const cxN=CO.nose/Math.SQRT2, cxF=CO.fall/Math.SQRT2-C;
+  const mxN=MIDX-MI.nose/2, mxF=MIDX-MI.fall/2;
+  // pocket hole centres, solved so the hole edge meets both fall points
+  const A=2, B=2*(cxF-C), Cc=cxF*cxF+C*C-CO.hole*CO.hole, ck=(-B+Math.sqrt(B*B-4*A*Cc))/(2*A);
+  const mk=Math.sqrt(Math.max(0,MI.hole**2-(MI.fall/2)**2));
+  [[-ck,-ck,CO.hole],[L+ck,-ck,CO.hole],[-ck,W+ck,CO.hole],[L+ck,W+ck,CO.hole],[MIDX,-C-mk,MI.hole],[MIDX,W+C+mk,MI.hole]]
+    .forEach(([x,y,r])=>{el("circle",{cx:x,cy:y,r:r+8,fill:"#20140C"},world);el("circle",{cx:x,cy:y,r,fill:"url(#g-hole)"},world);});
+  const top=[[cxF,-C,0],[cxN,0,CO.jaw],[mxN,0,MI.jaw],[mxF,-C,0]];
+  const side=[[-C,cxF,0],[0,cxN,CO.jaw],[0,W-cxN,CO.jaw],[-C,W-cxF,0]];
+  const fx=p=>[L-p[0],p[1],p[2]], fy=p=>[p[0],W-p[1],p[2]], fxy=p=>[L-p[0],W-p[1],p[2]];
+  [top,top.map(fx),top.map(fy),top.map(fxy),side,side.map(fx)].forEach(pts=>
+    el("path",{d:roundedPath(pts),fill:"#12692F",stroke:"#0B4F24","stroke-width":1.5},world));
+  el("rect",{x:0,y:0,width:L,height:W,fill:"none",stroke:"#000","stroke-opacity":".18","stroke-width":2},world);
+  const chalk={stroke:"#E9F3EA","stroke-opacity":".75","stroke-width":G.chalk,fill:"none"};
+  el("line",Object.assign({x1:G.baulk,y1:0,x2:G.baulk,y2:W},chalk),world);
+  if(G.D)el("path",Object.assign({d:`M${G.baulk} ${MIDY-G.D} A${G.D} ${G.D} 0 0 0 ${G.baulk} ${MIDY+G.D}`},chalk),world);
+  for(const k in G.spots){const [x,y]=G.spots[k];
+    el("circle",{cx:x,cy:y,r:G.spotR,fill:"#0C3D1E","fill-opacity":".85",stroke:"#E9F3EA","stroke-opacity":".6","stroke-width":1.5},world);}
+  G.world=world;
+  G.ballLayer=el("g",{},world);
+  G.nodes={}; G.balls=G.breakOff(); G.history=[]; G.selected=null;
+  G.order=G.balls.map(b=>b.id); // fixed order used by share codes
+}
+Object.values(GAMES).forEach(buildWorld);
+
+/* ---------- active game ---------- */
+let G=SNOOKER;
+const byId=id=>G.balls.find(b=>b.id===id);
+const clampX=(x,r)=>Math.max(r,Math.min(G.L-r,x)), clampY=(y,r)=>Math.max(r,Math.min(G.W-r,y));
+function makeNode(b){
+  const g=el("g",{class:"ball",tabindex:"0","data-id":b.id,role:"img"},G.ballLayer);
+  g.setAttribute("aria-label",G.colours[b.type].name);
+  el("circle",{cx:b.r*0.23,cy:b.r*0.3,r:b.r,fill:"#000","fill-opacity":".45",filter:"url(#f-shadow)"},g);
+  el("circle",{class:"face",r:b.r,fill:`url(#g-${G.key}-${b.type})`},g);
+  el("circle",{class:"ring",r:b.r+9},g);
+  const game=G; g.addEventListener("focus",()=>{if(game===G)select(b.id);});
+  G.nodes[b.id]=g; return g;
+}
+
+/* ---------- layout & orientation ---------- */
+const phoneMQ=matchMedia("(max-width:700px), (max-height:520px) and (pointer:coarse)");
+const isPhone=()=>phoneMQ.matches;
+let portraitOverride=null;
+function isPortrait(){
+  if(portraitOverride!=null)return portraitOverride;
+  if(isPhone()){ // pick whichever orientation makes the balls bigger
+    const w=stage.clientWidth, h=stage.clientHeight, M=G.M;
+    const land=Math.min(w/(G.L+2*M),h/(G.W+2*M)), port=Math.min(w/(G.W+2*M),h/(G.L+2*M));
+    return port>land;
+  }
+  return stage.clientWidth<620;
+}
+function applyOrientation(){
+  const M=G.M;
+  if(isPortrait()){
+    svg.setAttribute("viewBox",`${-M} ${-M} ${G.W+2*M} ${G.L+2*M}`);
+    G.world.setAttribute("transform",`matrix(0 -1 1 0 0 ${G.L})`); // baulk at the bottom
+  }else{
+    svg.setAttribute("viewBox",`${-M} ${-M} ${G.L+2*M} ${G.W+2*M}`);
+    G.world.setAttribute("transform","");                          // baulk on the left
+  }
+}
+window.addEventListener("resize",()=>{if(portraitOverride==null)applyOrientation();});
+if(phoneMQ.addEventListener)phoneMQ.addEventListener("change",()=>{closeSheet();applyOrientation();});
+
+/* ---------- state helpers ---------- */
+let snapOn=true;
+const snapshot=()=>G.balls.map(b=>({id:b.id,x:b.x,y:b.y,on:b.on}));
+function pushHistory(){G.history.push(snapshot()); if(G.history.length>100)G.history.shift();}
+function restore(s){s.forEach(o=>{const b=byId(o.id);b.x=o.x;b.y=o.y;b.on=o.on;b.removing=false;b.snapped=false;});}
+function overlaps(x,y,b){return G.balls.some(o=>o.on&&o.id!==b.id&&Math.hypot(o.x-x,o.y-y)<o.r+b.r-0.01);}
+function resolve(b,x,y){
+  x=clampX(x,b.r);y=clampY(y,b.r);
+  for(let it=0;it<12;it++){
+    let moved=false;
+    for(const o of G.balls){
+      if(!o.on||o.id===b.id)continue;
+      const need=o.r+b.r; let dx=x-o.x, dy=y-o.y, d=Math.hypot(dx,dy);
+      if(d<need){ if(d<1e-6){dx=1;dy=0;d=1;} x=o.x+dx/d*need; y=o.y+dy/d*need; x=clampX(x,b.r); y=clampY(y,b.r); moved=true; }
+    }
+    if(!moved)break;
+  }
+  return overlaps(x,y,b)?null:[x,y];
+}
+// Snap to a free spot, to touching the nearest ball, or to touching a cushion.
+function snapTo(b,p,rad){
+  for(const k in G.spots){const s=G.spots[k];
+    if(Math.hypot(p[0]-s[0],p[1]-s[1])<rad&&!overlaps(s[0],s[1],b))return s.slice();}
+  let best=null,bg=Infinity;
+  for(const o of G.balls){if(!o.on||o.id===b.id)continue;
+    const gap=Math.hypot(p[0]-o.x,p[1]-o.y)-o.r-b.r;
+    if(gap>0.01&&gap<rad&&gap<bg){bg=gap;best=o;}}
+  if(best){const d=Math.hypot(p[0]-best.x,p[1]-best.y), need=best.r+b.r;
+    const t=[best.x+(p[0]-best.x)/d*need, best.y+(p[1]-best.y)/d*need];
+    if(t[0]>=b.r&&t[0]<=G.L-b.r&&t[1]>=b.r&&t[1]<=G.W-b.r&&!overlaps(t[0],t[1],b))return t;}
+  const r=b.r; let x=p[0],y=p[1],hit=false;
+  if(x-r>0.01&&x-r<rad){x=r;hit=true}else if(G.L-r-x>0.01&&G.L-r-x<rad){x=G.L-r;hit=true}
+  if(y-r>0.01&&y-r<rad){y=r;hit=true}else if(G.W-r-y>0.01&&G.W-r-y<rad){y=G.W-r;hit=true}
+  if(hit&&!overlaps(x,y,b))return [x,y];
+  return null;
+}
+function select(id){G.selected=id; render();}
+
+function render(){
+  G.balls.forEach(b=>{
+    const g=G.nodes[b.id]||makeNode(b);
+    g.style.display=b.on?"":"none";
+    g.setAttribute("transform",`translate(${b.x.toFixed(2)} ${b.y.toFixed(2)})`);
+    g.classList.toggle("sel",b.id===G.selected);
+    g.classList.toggle("removing",!!b.removing);
+    g.classList.toggle("snapped",!!b.snapped&&!!drag);
+  });
+  if(G.selected&&G.nodes[G.selected])G.ballLayer.appendChild(G.nodes[G.selected]);
+  renderTray(); renderStatus();
+  undoBtn.disabled=!G.history.length;
+  if(!sharebox.hidden&&!drag)refreshShare();
+}
+
+/* ---------- pointer interaction ---------- */
+function ctmInv(){return G.world.getScreenCTM().inverse();}
+function toTable(cx,cy){const p=svg.createSVGPoint();p.x=cx;p.y=cy;const m=ctmInv();const q=p.matrixTransform(m);return [q.x,q.y,Math.hypot(m.a,m.b)];}
+const loupe=document.getElementById("loupe"), loupeSvg=document.getElementById("loupesvg"), loupeUse=document.getElementById("loupeuse");
+const LOUPE=132, ZOOM=3.5;
+function showLoupe(b,cx,cy){
+  const k=svg.getScreenCTM().a; // screen px per mm
+  const span=LOUPE/(k*ZOOM);
+  const X=isPortrait()?b.y:b.x, Y=isPortrait()?G.L-b.x:b.y;
+  loupeSvg.setAttribute("viewBox",`${X-span/2} ${Y-span/2} ${span} ${span}`);
+  let lx=cx, ly=cy-LOUPE/2-56;
+  if(ly-LOUPE/2<6){ly=cy;lx=cx+(cx<innerWidth/2?1:-1)*(LOUPE/2+48);}
+  lx=Math.max(LOUPE/2+4,Math.min(innerWidth-LOUPE/2-4,lx)); ly=Math.max(LOUPE/2+4,ly);
+  loupe.style.transform=`translate(${lx-LOUPE/2}px,${ly-LOUPE/2}px)`;
+  loupe.classList.toggle("snapped",!!b.snapped);
+  loupe.hidden=false;
+}
+let drag=null;
+function startDrag(b,e,mode,offset){
+  pushHistory();
+  drag={b,id:e.pointerId,mode,off:offset||[0,0],touch:e.pointerType!=="mouse",
+        v:[b.x,b.y],lc:[e.clientX,e.clientY],lt:e.timeStamp||performance.now(),speed:0,changed:false,last:[b.x,b.y]};
+  G.selected=b.id; svg.classList.add("dragging"); render();
+  if(drag.touch)showLoupe(b,e.clientX,e.clientY);
+}
+svg.addEventListener("pointerdown",e=>{
+  if(drag)return;
+  const [x,y,mmPerPx]=toTable(e.clientX,e.clientY);
+  let best=null,bd=Infinity;
+  G.balls.forEach(b=>{if(!b.on)return;const reach=Math.max(b.r,(e.pointerType==="mouse"?14:24)*mmPerPx);
+    const d=Math.hypot(b.x-x,b.y-y);if(d<reach&&d<bd){bd=d;best=b;}});
+  if(!best){G.selected=null;render();return;}
+  e.preventDefault(); G.nodes[best.id].focus({preventScroll:true});
+  // Mouse follows the pointer exactly. Touch and pen move the ball relative to the finger,
+  // slowing down when the finger moves slowly so small adjustments are easy.
+  startDrag(best,e,e.pointerType==="mouse"?"abs":"rel",[best.x-x,best.y-y]);
+});
+function moveDrag(e){
+  if(!drag||e.pointerId!==drag.id)return;
+  const b=drag.b, m=ctmInv(), mmPerPx=Math.hypot(m.a,m.b);
+  let cand;
+  if(drag.mode==="abs"){
+    const [px,py]=toTable(e.clientX,e.clientY); cand=[px+drag.off[0],py+drag.off[1]];
+  }else{
+    const dx=e.clientX-drag.lc[0], dy=e.clientY-drag.lc[1];
+    const t=e.timeStamp||performance.now(), dt=Math.max(1,t-drag.lt);
+    drag.speed=drag.speed*0.6+(Math.hypot(dx,dy)/dt)*0.4;       // px per ms, smoothed
+    const gear=0.3+0.7*Math.max(0,Math.min(1,(drag.speed-0.05)/0.55));
+    cand=[drag.v[0]+(m.a*dx+m.c*dy)*gear, drag.v[1]+(m.b*dx+m.d*dy)*gear];
+    drag.lc=[e.clientX,e.clientY]; drag.lt=t;
+  }
+  drag.changed=true;
+  const cl=[clampX(cand[0],b.r),clampY(cand[1],b.r)], over=Math.hypot(cand[0]-cl[0],cand[1]-cl[1]);
+  const offLimit=drag.mode==="abs"?1.2*b.r:Math.min(70,G.C+20);
+  if(over>offLimit){b.removing=true;b.snapped=false;b.x=cand[0];b.y=cand[1];drag.v=cand;}
+  else{
+    b.removing=false;
+    const p=resolve(b,cand[0],cand[1]);
+    if(p){
+      const s=snapOn?snapTo(b,p,Math.max(4,Math.min(15,5*mmPerPx))):null;
+      b.snapped=!!s; const q=s||p;
+      b.x=q[0];b.y=q[1];drag.last=q;
+      drag.v=[p[0]+(cand[0]-cl[0]),p[1]+(cand[1]-cl[1])]; // keep cushion overshoot so you can still drag off to pot
+    }
+  }
+  render();
+  if(drag.touch)showLoupe(b,e.clientX,e.clientY);
+}
+window.addEventListener("pointermove",moveDrag,{passive:true});
+function endDrag(e){
+  if(!drag||(e&&e.pointerId!==drag.id))return;
+  const b=drag.b;
+  if(b.removing){b.removing=false;b.on=false;[b.x,b.y]=drag.last;G.selected=null;}
+  b.snapped=false;
+  if(!drag.changed)G.history.pop();
+  drag=null; loupe.hidden=true; svg.classList.remove("dragging"); render();
+}
+window.addEventListener("pointerup",endDrag);
+window.addEventListener("pointercancel",endDrag);
+
+/* ---------- keyboard ---------- */
+document.addEventListener("keydown",e=>{
+  const ae=document.activeElement; if(ae&&(ae.tagName==="INPUT"||ae.tagName==="TEXTAREA"))return;
+  if(e.key==="Escape"&&document.body.classList.contains("sheet-open")){closeSheet();return;}
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="z"){e.preventDefault();undo();return;}
+  if(ae&&ae.tagName==="BUTTON")return;
+  const b=G.selected&&byId(G.selected); if(!b||!b.on)return;
+  const step=e.shiftKey?10:1; let sx=0,sy=0;
+  if(e.key==="ArrowLeft")sx=-1; else if(e.key==="ArrowRight")sx=1; else if(e.key==="ArrowUp")sy=-1; else if(e.key==="ArrowDown")sy=1;
+  else if(e.key==="Delete"||e.key==="Backspace"){e.preventDefault();pushHistory();b.on=false;G.selected=null;render();return;}
+  else if(e.key==="Escape"){G.selected=null;render();return;}
+  else return;
+  e.preventDefault();
+  let dx,dy; if(isPortrait()){dx=-sy*step;dy=sx*step;}else{dx=sx*step;dy=sy*step;}
+  const p=resolve(b,b.x+dx,b.y+dy); if(p){pushHistory();b.x=p[0];b.y=p[1];render();}
+});
+
+/* ---------- respotting ---------- */
+const free=(b,p)=>!overlaps(p[0],p[1],b);
+function freeNear(b,x,y,dir){
+  for(let s=0;s<G.L;s+=1){
+    for(const sign of (dir?[dir]:[1,-1])){
+      const nx=x+sign*s; if(nx<b.r||nx>G.L-b.r)continue;
+      if(!overlaps(nx,y,b))return [nx,y];
+    }
+  }
+  return null;
+}
+function returnToTable(b){
+  let p=G.respotTarget(b,free,freeNear);
+  if(!p){ // nearest free point to the pack area, spiralling out
+    const [cx,cy]=G.packPoint;
+    outer: for(let rad=0;rad<G.L;rad+=4){for(let a=0;a<360;a+=10){
+      const x=clampX(cx+rad*Math.cos(a*Math.PI/180),b.r), y=clampY(cy+rad*Math.sin(a*Math.PI/180),b.r);
+      if(!overlaps(x,y,b)){p=[x,y];break outer;} if(rad===0)break;}}
+  }
+  if(!p)return;
+  pushHistory(); b.x=p[0]; b.y=p[1]; b.on=true; G.selected=b.id; render();
+}
+
+/* ---------- tray ---------- */
+const tray=document.getElementById("tray");
+function renderTray(){
+  const rank=b=>G.rankOrder.indexOf(b.type);
+  const off=G.balls.filter(b=>!b.on).sort((a,b)=>rank(a)-rank(b));
+  tray.textContent="";
+  tray.parentElement.classList.toggle("none",!off.length);
+  if(!off.length){const s=document.createElement("span");s.className="empty";s.textContent="No balls off the table";tray.appendChild(s);return;}
+  off.forEach(b=>{
+    const c=G.colours[b.type].c;
+    const btn=document.createElement("button");
+    btn.type="button";btn.className="chip";btn.setAttribute("aria-label","Put "+G.colours[b.type].name.toLowerCase()+" back");
+    btn.style.background=`radial-gradient(circle at 36% 34%, ${shade(c,.5)}, ${c} 55%, ${shade(c,-.45)})`;
+    btn.addEventListener("pointerdown",e=>{
+      e.preventDefault();
+      const sx=e.clientX, sy=e.clientY, pid=e.pointerId;
+      const move=ev=>{
+        if(ev.pointerId!==pid||Math.hypot(ev.clientX-sx,ev.clientY-sy)<8)return;
+        cleanup();
+        const [x,y]=toTable(ev.clientX,ev.clientY);
+        b.on=true; b.x=clampX(x,b.r); b.y=clampY(y,b.r);
+        startDrag(b,ev,"abs",[0,0]);
+        G.history[G.history.length-1].forEach(o=>{if(o.id===b.id)o.on=false;});
+        drag.changed=true; moveDrag(ev);
+      };
+      const up=ev=>{if(ev.pointerId!==pid)return;cleanup();returnToTable(b);};
+      function cleanup(){window.removeEventListener("pointermove",move);window.removeEventListener("pointerup",up);}
+      window.addEventListener("pointermove",move);
+      window.addEventListener("pointerup",up);
+    });
+    tray.appendChild(btn);
+  });
+}
+
+/* ---------- status line ---------- */
+const statusEl=document.getElementById("status");
+const fmt=n=>Math.round(n).toLocaleString("en-GB");
+function contact(b){
+  for(const k in G.spots){const s=G.spots[k];if(Math.hypot(b.x-s[0],b.y-s[1])<0.5)return "On "+k+" spot";}
+  const touching=G.balls.filter(o=>o.on&&o.id!==b.id&&Math.hypot(o.x-b.x,o.y-b.y)-o.r-b.r<0.5);
+  if(touching.length){const names=[...new Set(touching.map(o=>o.type==="white"?"cue ball":o.type))];return "Touching "+names.join(" and ");}
+  const gap=Math.min(b.x-b.r,G.L-b.r-b.x,b.y-b.r,G.W-b.r-b.y);
+  return gap<0.5?"Touching cushion":"Cushion gap "+fmt(gap)+" mm";
+}
+function renderStatus(){
+  const b=G.selected&&byId(G.selected);
+  if(!b||!b.on){
+    statusEl.innerHTML=`<span>${G.summary(G.balls)}</span><span class="dim">Drag a ball to move it, or off the table to pot it</span>`;
+    return;
+  }
+  statusEl.innerHTML=`<b>${G.colours[b.type].name}</b><span><span class="dim">From baulk</span> ${fmt(b.x)} mm</span><span><span class="dim">From left</span> ${fmt(b.y)} mm</span><span class="tag">${contact(b)}</span>`;
+}
+
+/* ---------- controls ---------- */
+const undoBtn=document.getElementById("undo");
+function undo(){if(!G.history.length)return;restore(G.history.pop());G.selected=null;render();}
+undoBtn.addEventListener("click",undo);
+document.getElementById("reset").addEventListener("click",()=>{pushHistory();G.breakOff().forEach(f=>{const b=byId(f.id);b.x=f.x;b.y=f.y;b.on=true;});G.selected=null;render();});
+const clearBtn=document.getElementById("clearballs");
+clearBtn.addEventListener("click",()=>{
+  if(!G.balls.some(b=>b.on&&G.clearTypes.includes(b.type)))return;
+  pushHistory();G.balls.forEach(b=>{if(G.clearTypes.includes(b.type))b.on=false;});
+  const s=G.selected&&byId(G.selected); if(s&&!s.on)G.selected=null; render();closeSheet();});
+document.getElementById("rotate").addEventListener("click",()=>{portraitOverride=!isPortrait();applyOrientation();closeSheet();});
+const snapBtn=document.getElementById("snap");
+snapBtn.addEventListener("click",()=>{snapOn=!snapOn;snapBtn.setAttribute("aria-pressed",String(snapOn));snapBtn.textContent=snapOn?"Snap on":"Snap off";});
+
+/* ---------- More sheet (phones) ---------- */
+const moreBtn=document.getElementById("morebtn");
+function openSheet(){document.body.classList.add("sheet-open");moreBtn.setAttribute("aria-expanded","true");document.getElementById("closemore").focus();}
+function closeSheet(){if(!document.body.classList.contains("sheet-open"))return;document.body.classList.remove("sheet-open");moreBtn.setAttribute("aria-expanded","false");}
+moreBtn.addEventListener("click",openSheet);
+document.getElementById("closemore").addEventListener("click",()=>{closeSheet();moreBtn.focus();});
+document.getElementById("scrim").addEventListener("click",closeSheet);
+
+/* ---------- sharing ----------
+   Layout code: game prefix ("s1" snooker, "p1" pool) + base64url of 3 bytes per ball, in a
+   fixed order: 12-bit x and 12-bit y in whole mm; x = 4095 means the ball is off the table. */
+const sharebox=document.getElementById("sharebox"), shareBtn=document.getElementById("share");
+const shareInput=document.getElementById("sharelink"), shareMsg=document.getElementById("sharemsg");
+let embedded=false; try{embedded=window.self!==window.top;}catch(e){embedded=true;}
+const canLink=!embedded&&/^https?:$/.test(location.protocol);
+function encodeLayout(){
+  const bytes=[];
+  G.order.forEach(id=>{const b=byId(id);
+    const x=b.on?Math.round(b.x):4095, y=b.on?Math.round(b.y):0;
+    bytes.push(x>>4,((x&15)<<4)|(y>>8),y&255);});
+  return G.prefix+btoa(String.fromCharCode.apply(null,bytes)).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+}
+function decodeLayout(code){
+  const m=/(?:^|#)((s1|p1)[A-Za-z0-9_-]+)\s*$/.exec(String(code).trim()); if(!m)return null;
+  const game=m[2]==="p1"?POOL:SNOOKER;
+  let s=m[1].slice(2).replace(/-/g,"+").replace(/_/g,"/"); while(s.length%4)s+="=";
+  let raw; try{raw=atob(s);}catch(e){return null;}
+  if(raw.length!==game.order.length*3)return null;
+  const layout=game.order.map((id,i)=>{
+    const a=raw.charCodeAt(i*3),b=raw.charCodeAt(i*3+1),c=raw.charCodeAt(i*3+2);
+    const x=(a<<4)|(b>>4), y=((b&15)<<8)|c, r=game.balls.find(q=>q.id===id).r;
+    return x===4095?{id,on:false}:{id,x:Math.max(r,Math.min(game.L-r,x)),y:Math.max(r,Math.min(game.W-r,y)),on:true};
+  });
+  return {game:game.key,layout};
+}
+function applyLayout(res,record){
+  if(G.key!==res.game)setGame(res.game);
+  if(record)pushHistory();
+  res.layout.forEach(o=>{const b=byId(o.id);b.on=o.on;if(o.on){b.x=o.x;b.y=o.y;}b.removing=false;});
+  G.selected=null;render();
+}
+function refreshShare(){
+  const code=encodeLayout();
+  if(canLink){shareInput.value=location.href.split("#")[0]+"#"+code;}
+  else{document.getElementById("sharelink-label").textContent="Layout code";shareInput.value=code;
+    if(!/copied|loaded|recognised|Press/.test(shareMsg.textContent))shareMsg.textContent="Send this code to someone and they can paste it here to see exactly this position.";}
+}
+shareBtn.addEventListener("click",()=>{
+  const open=sharebox.hidden; sharebox.hidden=!open; shareBtn.setAttribute("aria-expanded",String(open));
+  if(open)refreshShare();
+});
+document.getElementById("copylink").addEventListener("click",()=>{
+  refreshShare();
+  const done=()=>{shareMsg.textContent=canLink?"Link copied.":"Code copied.";};
+  const fallback=()=>{shareInput.focus();shareInput.select();shareMsg.textContent="Press Ctrl+C (or ⌘C) to copy.";};
+  try{navigator.clipboard.writeText(shareInput.value).then(done,fallback);}catch(e){fallback();}
+});
+document.getElementById("loadcode").addEventListener("click",()=>{
+  const res=decodeLayout(document.getElementById("pastecode").value);
+  if(!res){shareMsg.textContent="That code wasn't recognised. Check it was copied in full; it starts with s1 or p1.";return;}
+  applyLayout(res,true); refreshShare(); shareMsg.textContent="Layout loaded.";
+});
+
+/* ---------- install as an app (only when hosted as a web app, e.g. GitHub Pages) ---------- */
+const installBtn=document.getElementById("install"), installHelp=document.getElementById("installhelp");
+const standalone=matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
+let installPrompt=null;
+if(canLink&&!standalone){
+  window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();installPrompt=e;installBtn.hidden=false;});
+  const iOS=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+  if(iOS)installBtn.hidden=false;
+  installBtn.addEventListener("click",()=>{
+    if(installPrompt){installPrompt.prompt();installPrompt.userChoice.finally(()=>{installPrompt=null;installBtn.hidden=true;});}
+    else installHelp.hidden=!installHelp.hidden;
+  });
+  window.addEventListener("appinstalled",()=>{installBtn.hidden=true;installHelp.hidden=true;});
+}
+
+/* ---------- game tabs ---------- */
+const tabs=[...document.querySelectorAll('[role="tab"]')];
+function setGame(key,focusTab){
+  if(drag)return;
+  G=GAMES[key]||SNOOKER;
+  for(const g of Object.values(GAMES))g.world.style.display=g===G?"":"none";
+  tabs.forEach(t=>{const on=t.dataset.game===G.key;t.setAttribute("aria-selected",String(on));t.tabIndex=on?0:-1;if(on&&focusTab)t.focus();});
+  stage.setAttribute("aria-labelledby","tab-"+G.key);
+  svg.setAttribute("aria-label",(G.key==="pool"?"English pool":"Snooker")+" table, top-down view");
+  loupeUse.setAttribute("href","#world-"+G.key);
+  clearBtn.textContent=G.clearLabel;
+  document.getElementById("specs-snooker").hidden=G.key!=="snooker";
+  document.getElementById("specs-pool").hidden=G.key!=="pool";
+  applyOrientation(); render();
+}
+tabs.forEach(t=>{
+  t.addEventListener("click",()=>setGame(t.dataset.game));
+  t.addEventListener("keydown",e=>{
+    if(e.key!=="ArrowLeft"&&e.key!=="ArrowRight")return;
+    e.preventDefault(); const i=tabs.indexOf(t), n=tabs[(i+(e.key==="ArrowRight"?1:tabs.length-1))%tabs.length];
+    setGame(n.dataset.game,true);
+  });
+});
+function fromHash(record){
+  const h=location.hash.slice(1);
+  if(h==="pool"||h==="snooker"){setGame(h);return;}
+  const res=decodeLayout(location.hash); if(res)applyLayout(res,record);
+}
+window.addEventListener("hashchange",()=>fromHash(true));
+
+// Start on snooker at the break-off. A link ending #pool opens the pool table; a shared code opens its position.
+setGame("snooker");
+fromHash(false);
+})();
+</script>
+<script>
+if ("serviceWorker" in navigator && /^https:$|^http:$/.test(location.protocol)) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+}
+</script>
+</body>
+</html>
