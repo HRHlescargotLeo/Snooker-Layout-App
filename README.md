@@ -8,6 +8,7 @@ A top-down, to-scale snooker table and English 8-ball pool table in a single web
 - The table, markings, balls and pocket jaws are drawn to scale in millimetres.
 - Drag balls into place. Balls can't overlap and stay inside the cushions.
 - **Tap to place:** tap a ball to select it, then tap where it should go. Tap again to adjust it, or tap the ball itself to finish. On a computer, click instead of tapping.
+- **From photos:** photograph the table from one to three angles and the app sets up the layout for you. It finds the table in each photo, straightens it, finds the balls and identifies their colours, and combines the photos. Balls it isn't sure about are ringed in orange to check. Balls it can't find go in the tray. The straightened photo can be shown under the table (Photo 1 / 2 / 3 / Off, bottom left) so you can compare. Everything runs on the phone, and no photos leave it.
 - **Zoom:** pinch with two fingers, double-tap the cloth, or use the − / + buttons in the corner of the table. **Fit** shows the whole table again. When zoomed in, drag the cloth with one finger to move around. On a computer, use Ctrl or ⌘ + scroll, trackpad pinch, or the + / − / 0 keys.
 - Drag a ball off the table to pot it. Tap it in the tray to respot it, or drag it back onto the table. In pool, object balls respot on the black spot, or as close behind it as possible.
 - **Snap** (on by default): a ball dropped close to a free spot, another ball or a cushion clicks into place on the spot, touching the ball or touching the cushion. Turn it off to set small gaps by hand.
@@ -23,6 +24,17 @@ A top-down, to-scale snooker table and English 8-ball pool table in a single web
 - While you drag, a magnifier above your finger shows the ball at 3.5× so your finger doesn't hide it.
 - Dragging is geared: slow finger movements move the ball about a third as far, for fine placement. Quick movements move it at full speed.
 - Flick a ball well past the cushion to take it off the table.
+
+## Setting up from photos
+
+1. Open **From photos** (under More on a phone).
+2. Take or choose one to three photos. For the best results, take one from each end of the table with the phone held up high, and keep all four corner pockets in the frame. A third photo from the side helps when balls are bunched together.
+3. For each photo, check the four corner markers. They go on the corner of the cloth, where the cushions meet inside each pocket. The straightened view below the photo should line up with the table's own baulk line and D. If the ends are swapped, tap **Turn**.
+4. Tap **Build layout**.
+
+**How it works.** The four corners give the mapping from the photo to the table in millimetres, and also where the camera was. A ball's centre sits 26 mm above the cloth, so in a straightened photo it appears to lean away from the camera. The app corrects for that using the camera position. When there are several photos, it merges each ball's sightings and takes a vote on the colour.
+
+In tests on rendered photos with known ball positions, two end-on photos placed every ball to within about 1 cm. Real photos will be less tidy than that, so check the balls ringed in orange.
 
 ## Dimensions
 

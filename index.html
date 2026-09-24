@@ -94,7 +94,7 @@ button[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1p
 .zoomctl #zoomfit{font-size:13px}
 .zoomctl button:disabled{opacity:.5}
 .stagehint{position:absolute;left:50%;top:10px;transform:translateX(-50%);margin:0;z-index:2;pointer-events:none;
-  background:rgba(16,21,18,.82);color:#F2F5F1;font-size:14px;padding:6px 12px;border-radius:999px;white-space:nowrap;max-width:calc(100% - 20px);overflow:hidden;text-overflow:ellipsis}
+  background:rgba(16,21,18,.82);color:#F2F5F1;font-size:14px;line-height:1.35;padding:6px 12px;border-radius:14px;text-align:center;width:max-content;max-width:min(560px,calc(100% - 20px))}
 
 .bar{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 12px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;min-height:44px;box-sizing:border-box}
 .status{font-variant-numeric:tabular-nums}
@@ -117,6 +117,34 @@ details{font-size:14px;color:var(--muted)}
 summary{cursor:pointer;font:600 13px/1.4 var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--ink)}
 .specs{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:4px 24px;margin:10px 0 0;padding:0;list-style:none;font-variant-numeric:tabular-nums}
 .specs b{color:var(--ink);font-weight:600}
+
+.ball .flagring{opacity:0;fill:none;stroke:#FF9F1C;stroke-width:4;stroke-dasharray:7 5;pointer-events:none}
+.ball.flag .flagring{opacity:1}
+.status .tag.warn{background:#FF9F1C;color:#1A1204}
+.photoctl{position:absolute;left:10px;bottom:10px;display:flex;align-items:center;gap:4px;z-index:2;
+  background:rgba(246,247,243,.92);border-radius:8px;padding:3px 3px 3px 10px;box-shadow:0 1px 4px rgba(0,0,0,.25);color:#18201C;font:600 12px/1 var(--display);letter-spacing:.08em;text-transform:uppercase}
+.photoctl button{min-width:34px;height:32px;padding:0 8px;font-size:13px;background:transparent;border-color:transparent;color:#18201C}
+.photoctl button[aria-pressed="true"]{background:#18201C;color:#F6F7F3}
+.photopanel{position:fixed;inset:0;z-index:40;background:var(--scrim);display:flex;align-items:flex-start;justify-content:center;overflow:auto;
+  padding:calc(16px + env(safe-area-inset-top,0px)) 16px calc(16px + env(safe-area-inset-bottom,0px))}
+.pp-card{background:var(--panel);color:var(--ink);border-radius:12px;width:100%;max-width:760px;padding:16px 18px 18px;display:flex;flex-direction:column;gap:12px;box-shadow:0 10px 40px rgba(0,0,0,.35)}
+.pp-card > div{display:flex;flex-direction:column;gap:12px}
+.pp-head{flex-direction:row!important;justify-content:space-between;align-items:flex-start}
+.pp-head h2{font:700 24px/1.1 var(--display);margin:2px 0 0}
+.pp-tips{margin:0;padding-left:18px;color:var(--muted);font-size:14.5px;display:grid;gap:2px}
+.pp-slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.pp-slot{display:flex;gap:10px;align-items:flex-start;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px}
+.pp-slot canvas{border-radius:4px;flex:none;max-width:50%;height:auto!important}
+.pp-info{display:flex;flex-direction:column;gap:6px;align-items:flex-start;min-width:0}
+.pp-info .dim{color:var(--muted);font-size:13.5px}
+.pp-info button{padding:7px 9px;font-size:12.5px}
+.pp-actions{display:flex;flex-wrap:wrap;gap:8px}
+.pp-editor{display:flex;justify-content:center;background:#111;border-radius:8px;overflow:hidden}
+.pp-editor canvas{display:block;touch-action:none;max-width:100%}
+.pp-prevwrap{display:flex;justify-content:center}
+.pp-prevwrap canvas{border-radius:6px;max-width:100%}
+.pp-sub{margin-top:4px}
+.pp-open{overflow:hidden}
 
 /* magnifier shown above the finger while dragging on a touch screen */
 .loupe{position:fixed;left:0;top:0;width:132px;height:132px;border-radius:50%;overflow:hidden;z-index:30;pointer-events:none;
@@ -195,6 +223,7 @@ summary{cursor:pointer;font:600 13px/1.4 var(--display);letter-spacing:.1em;text
       <button id="closemore" type="button">Close</button>
     </div>
     <div class="tools2" role="toolbar" aria-label="More table controls">
+      <button id="photos" type="button">From photos</button>
       <button id="clearballs" type="button">Remove reds</button>
       <button id="rotate" type="button">Rotate view</button>
       <button id="share" type="button" aria-expanded="false" aria-controls="sharebox">Share layout</button>
@@ -254,6 +283,7 @@ summary{cursor:pointer;font:600 13px/1.4 var(--display);letter-spacing:.1em;text
 
   <div class="stage" id="stage" role="tabpanel" aria-labelledby="tab-snooker"><svg id="table" role="application" aria-label="Table, top-down view"></svg>
     <p class="stagehint" id="stagehint" hidden aria-live="polite"></p>
+    <div class="photoctl" id="photoctl" role="group" aria-label="Photo under the table" hidden></div>
     <div class="zoomctl" role="group" aria-label="Zoom">
       <button id="zoomout" type="button" aria-label="Zoom out" title="Zoom out">&minus;</button>
       <button id="zoomfit" type="button" hidden title="Show the whole table">Fit</button>
@@ -267,6 +297,44 @@ summary{cursor:pointer;font:600 13px/1.4 var(--display);letter-spacing:.1em;text
     <p class="label">Off the table</p>
     <div id="tray"></div>
     <p class="hint desk">Tap a ball to respot it, or drag it onto the table.</p>
+  </div>
+</div>
+
+<div class="photopanel" id="photopanel" hidden role="dialog" aria-modal="true" aria-labelledby="pp-h">
+  <div class="pp-card">
+    <div class="pp-head">
+      <div><p class="label" id="pp-game">Snooker</p><h2 id="pp-h">Set up from photos</h2></div>
+      <button id="pp-close" type="button">Close</button>
+    </div>
+    <div id="pp-list">
+      <ul class="pp-tips">
+        <li>Take one to three photos with all four corner pockets in the frame.</li>
+        <li>Best results: one photo from each end of the table, with the phone held up high.</li>
+        <li>A third photo from the side helps when balls are bunched together.</li>
+      </ul>
+      <div class="pp-slots" id="pp-slots"></div>
+      <div class="pp-actions">
+        <button id="pp-take" type="button">Take photo</button>
+        <button id="pp-choose" type="button">Choose photo</button>
+        <button id="pp-build" type="button" class="primary" disabled>Build layout</button>
+      </div>
+      <input id="pp-in-take" type="file" accept="image/*" capture="environment" hidden>
+      <input id="pp-in-choose" type="file" accept="image/*" multiple hidden>
+      <p class="hint" id="pp-msg" aria-live="polite"></p>
+    </div>
+    <div id="pp-edit" hidden>
+      <p class="hint">Drag each marker to the corner of the cloth, where the two cushions meet inside the pocket. If the ends are the wrong way round, use Turn.</p>
+      <div class="pp-editor"><canvas id="pp-canvas" aria-label="Photo with corner markers"></canvas></div>
+      <p class="label pp-sub">Straightened view</p>
+      <p class="hint">The dashed lines should sit on the table's own baulk line<span class="snk-only">, D</span> and cushions.</p>
+      <div class="pp-prevwrap"><canvas id="pp-preview" aria-label="Straightened photo"></canvas></div>
+      <p class="hint" id="pp-edit-msg" aria-live="polite"></p>
+      <div class="pp-actions">
+        <button id="pp-turn" type="button">Turn ↻</button>
+        <button id="pp-auto" type="button">Find corners again</button>
+        <button id="pp-done" type="button" class="primary">Done</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -408,6 +476,7 @@ function buildWorld(G){
   const mk=Math.sqrt(Math.max(0,MI.hole**2-(MI.fall/2)**2));
   [[-ck,-ck,CO.hole],[L+ck,-ck,CO.hole],[-ck,W+ck,CO.hole],[L+ck,W+ck,CO.hole],[MIDX,-C-mk,MI.hole],[MIDX,W+C+mk,MI.hole]]
     .forEach(([x,y,r])=>{el("circle",{cx:x,cy:y,r:r+8,fill:"#20140C"},world);el("circle",{cx:x,cy:y,r,fill:"url(#g-hole)"},world);});
+  G.underlay=el("g",{class:"underlay"},world); // straightened photo, when there is one
   const top=[[cxF,-C,0],[cxN,0,CO.jaw],[mxN,0,MI.jaw],[mxF,-C,0]];
   const side=[[-C,cxF,0],[0,cxN,CO.jaw],[0,W-cxN,CO.jaw],[-C,W-cxF,0]];
   const fx=p=>[L-p[0],p[1],p[2]], fy=p=>[p[0],W-p[1],p[2]], fxy=p=>[L-p[0],W-p[1],p[2]];
@@ -436,6 +505,7 @@ function makeNode(b){
   el("circle",{cx:b.r*0.23,cy:b.r*0.3,r:b.r,fill:"#000","fill-opacity":".45",filter:"url(#f-shadow)"},g);
   el("circle",{class:"face",r:b.r,fill:`url(#g-${G.key}-${b.type})`},g);
   el("circle",{class:"ring",r:b.r+9},g);
+  el("circle",{class:"flagring",r:b.r+5},g);
   const game=G; g.addEventListener("focus",()=>{if(game===G)select(b.id);});
   G.nodes[b.id]=g; return g;
 }
@@ -544,13 +614,15 @@ function render(){
     g.setAttribute("transform",`translate(${b.x.toFixed(2)} ${b.y.toFixed(2)})`);
     g.classList.toggle("sel",b.id===G.selected);
     g.classList.toggle("removing",!!b.removing);
+    g.classList.toggle("flag",!!b.flag&&b.on);
     g.classList.toggle("snapped",!!b.snapped&&!!drag);
   });
   if(G.selected&&G.nodes[G.selected])G.ballLayer.appendChild(G.nodes[G.selected]);
   renderTray(); renderStatus();
   const sb=G.selected&&byId(G.selected);
-  stageHint.hidden=!(sb&&sb.on&&!drag&&G.armed);
-  if(!stageHint.hidden){const n=G.colours[sb.type].name.toLowerCase(), t=touchFirst?"Tap":"Click";
+  stageHint.hidden=!(sb&&sb.on&&!drag&&G.armed)&&!G.notice;
+  if(G.notice&&!(sb&&sb.on&&G.armed))stageHint.textContent=G.notice;
+  else if(!stageHint.hidden){const n=G.colours[sb.type].name.toLowerCase(), t=touchFirst?"Tap":"Click";
     stageHint.textContent=G.placed?`${t} again to adjust, or ${t.toLowerCase()} the ${n} to finish`:`${t} where the ${n} should go`;}
   undoBtn.disabled=!G.history.length;
   if(!sharebox.hidden&&!drag)refreshShare();
@@ -585,7 +657,7 @@ function startDrag(b,e,mode,offset){
   drag={b,id:e.pointerId,mode,off:offset||[0,0],touch:e.pointerType!=="mouse",
         v:[b.x,b.y],lc:[e.clientX,e.clientY],sc:[e.clientX,e.clientY],t0:performance.now(),far:false,
         lt:e.timeStamp||performance.now(),speed:0,changed:false,last:[b.x,b.y],wasSel:G.selected===b.id};
-  G.selected=b.id; svg.classList.add("dragging"); render();
+  b.flag=false; G.selected=b.id; svg.classList.add("dragging"); render();
 }
 function cancelDrag(){ // put the ball back where it was and forget the drag
   if(!drag)return;
@@ -598,6 +670,7 @@ function ballAt(x,y,mmPerPx,type){
   return best;
 }
 svg.addEventListener("pointerdown",e=>{
+  if(G.notice){G.notice=null;render();}
   pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
   if(e.pointerType!=="mouse"&&pts.size===2){ // second finger: switch to pinch-zoom
     cancelDrag(); press=null;
@@ -694,7 +767,7 @@ function placeSelected(cx,cy){
   if(x<-b.r||x>G.L+b.r||y<-b.r||y>G.W+b.r)return false; // tapped the rail: not a placement
   const p=resolve(b,x,y); if(!p)return true;
   const s=snapOn?snapTo(b,p,Math.max(4,Math.min(15,5*mmPerPx))):null, q=s||p;
-  pushHistory(); b.x=q[0]; b.y=q[1]; G.placed=true; render(); return true;
+  pushHistory(); b.x=q[0]; b.y=q[1]; b.flag=false; G.placed=true; render(); return true;
 }
 function onUp(e){
   pts.delete(e.pointerId);
@@ -727,6 +800,7 @@ svg.addEventListener("wheel",e=>{
 
 /* ---------- keyboard ---------- */
 document.addEventListener("keydown",e=>{
+  if(!pp.hidden)return;
   const ae=document.activeElement; if(ae&&(ae.tagName==="INPUT"||ae.tagName==="TEXTAREA"))return;
   if(e.key==="Escape"&&document.body.classList.contains("sheet-open")){closeSheet();return;}
   if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="z"){e.preventDefault();undo();return;}
@@ -820,7 +894,7 @@ function renderStatus(){
     statusEl.innerHTML=`<span>${G.summary(G.balls)}</span><span class="dim">Drag a ball, or tap it and then tap where it goes</span>`;
     return;
   }
-  statusEl.innerHTML=`<b>${G.colours[b.type].name}</b><span><span class="dim">From baulk</span> ${fmt(b.x)} mm</span><span><span class="dim">From left</span> ${fmt(b.y)} mm</span><span class="tag">${contact(b)}</span>`;
+  statusEl.innerHTML=`<b>${G.colours[b.type].name}</b><span><span class="dim">From baulk</span> ${fmt(b.x)} mm</span><span><span class="dim">From left</span> ${fmt(b.y)} mm</span><span class="tag">${contact(b)}</span>${b.flag?'<span class="tag warn">Check this ball</span>':""}`;
 }
 
 /* ---------- controls ---------- */
@@ -921,6 +995,593 @@ if(canLink&&!standalone){
   window.addEventListener("appinstalled",()=>{installBtn.hidden=true;installHelp.hidden=true;});
 }
 
+/* =====================================================================
+   Set up from photos. Everything runs on the device.
+   1. Each photo is "straightened": four corners of the playing area give a homography
+      from table millimetres to photo pixels, and from that an estimate of where the
+      camera was (position and height above the cloth).
+   2. Balls are found in the straightened photo as round patches that differ from the
+      cloth, sized using the known ball diameter. A ball's top sits above the cloth, so in
+      a straightened photo it leans away from the camera; the camera estimate undoes that.
+   3. Photos are combined: the same ball seen in several photos is merged, its colour is
+      voted on, and anything doubtful is marked for the user to check.
+   ===================================================================== */
+const PH_MAX=2400;                                   // longest side of each photo's working copy, px
+const CORNER_LABELS=["Baulk left","Baulk right","Top right","Top left"];
+const tableCorners=g=>[[0,0],[0,g.W],[g.L,g.W],[g.L,0]];
+const objR=g=>g.balls.find(b=>b.type!=="white").r;
+
+/* ---------- small linear algebra ---------- */
+function solveLin(A,b){
+  const n=b.length; const M=A.map((r,i)=>[...r,b[i]]);
+  for(let c=0;c<n;c++){
+    let p=c; for(let r=c+1;r<n;r++)if(Math.abs(M[r][c])>Math.abs(M[p][c]))p=r;
+    [M[c],M[p]]=[M[p],M[c]]; const v=M[c][c]; if(Math.abs(v)<1e-12)return null;
+    for(let r=0;r<n;r++){if(r===c)continue;const f=M[r][c]/v;if(f)for(let k=c;k<=n;k++)M[r][k]-=f*M[c][k];}
+  }
+  return M.map((r,i)=>r[n]/r[i]);
+}
+function homography(src,dst){ // 3x3 (row-major, 9 values) mapping src[i] -> dst[i]
+  const A=[],b=[];
+  for(let i=0;i<4;i++){const [x,y]=src[i],[u,v]=dst[i];
+    A.push([x,y,1,0,0,0,-u*x,-u*y]);b.push(u);
+    A.push([0,0,0,x,y,1,-v*x,-v*y]);b.push(v);}
+  const h=solveLin(A,b); return h?[...h,1]:null;
+}
+const hApply=(H,x,y)=>{const w=H[6]*x+H[7]*y+H[8];return [(H[0]*x+H[1]*y+H[2])/w,(H[3]*x+H[4]*y+H[5])/w];};
+const dot3=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
+const cross3=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
+
+// Camera pose from a table-to-image homography. The focal length is solved from the constraint
+// that the table's x and y axes are perpendicular and equally scaled; if that is ill-conditioned
+// (e.g. a nearly overhead shot) a typical phone focal length is used instead.
+function estimatePose(H,w,h,fixedF){
+  const cx=w/2, cy=h/2, diag=Math.hypot(w,h);
+  const col=j=>[H[j],H[3+j],H[6+j]];
+  const h1=col(0),h2=col(1),h3=col(2);
+  const a=c=>[c[0]-cx*c[2],c[1]-cy*c[2]];
+  const a1=a(h1),a2=a(h2),w1=h1[2],w2=h2[2];
+  const est=[];
+  const fo=-(a1[0]*a2[0]+a1[1]*a2[1])/(w1*w2); if(isFinite(fo)&&fo>0)est.push(Math.sqrt(fo));
+  const fn=(a1[0]**2+a1[1]**2-a2[0]**2-a2[1]**2)/(w2*w2-w1*w1); if(isFinite(fn)&&fn>0)est.push(Math.sqrt(fn));
+  const ok=est.filter(f=>f>0.3*diag&&f<2*diag);
+  const consistency=ok.length===2?Math.abs(Math.log(ok[0]/ok[1])):ok.length===1?0.8:3;
+  const fGeo=ok.length?Math.exp(ok.reduce((s,x)=>s+Math.log(x),0)/ok.length):0.6*diag;
+  const f=fixedF||fGeo;
+  const K=c=>[(c[0]-cx*c[2])/f,(c[1]-cy*c[2])/f,c[2]];
+  let r1=K(h1),r2=K(h2),t=K(h3);
+  const lam=2/(Math.hypot(...r1)+Math.hypot(...r2));
+  r1=r1.map(v=>v*lam);r2=r2.map(v=>v*lam);t=t.map(v=>v*lam);
+  if(t[2]<0){r1=r1.map(v=>-v);r2=r2.map(v=>-v);t=t.map(v=>-v);}
+  const r3=cross3(r1,r2);
+  const C=[-dot3(r1,t),-dot3(r2,t),-dot3(r3,t)];
+  const height=Math.abs(C[2]);
+  return {f,fGeo,consistency,cam:[C[0],C[1]],height,valid:height>250&&height<9000};
+}
+
+/* ---------- loading ---------- */
+function loadPhoto(file){
+  return new Promise((res,rej)=>{
+    const url=URL.createObjectURL(file), img=new Image();
+    img.onload=()=>{
+      const k=Math.min(1,PH_MAX/Math.max(img.naturalWidth,img.naturalHeight));
+      const w=Math.round(img.naturalWidth*k), h=Math.round(img.naturalHeight*k);
+      const cv=document.createElement("canvas"); cv.width=w; cv.height=h;
+      const cx=cv.getContext("2d",{willReadFrequently:true}); cx.drawImage(img,0,0,w,h);
+      URL.revokeObjectURL(url);
+      res({canvas:cv,w,h,data:cx.getImageData(0,0,w,h),corners:null,H:null,pose:null,name:file.name||"Photo"});
+    };
+    img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error("That file couldn't be opened as a photo."));};
+    img.src=url;
+  });
+}
+
+/* ---------- straightening ---------- */
+function setCorners(ph,g,corners){
+  ph.corners=corners.map(p=>p.slice());
+  ph.H=homography(tableCorners(g),ph.corners);
+  ph.pose=ph.H?estimatePose(ph.H,ph.w,ph.h):null;
+  ph.rect=null;
+}
+function rectify(ph,g,scale,margin){
+  const outW=Math.ceil((g.L+2*margin)/scale), outH=Math.ceil((g.W+2*margin)/scale);
+  const src=ph.data.data, sw=ph.w, sh=ph.h, H=ph.H;
+  const out=new ImageData(outW,outH), d=out.data;
+  for(let j=0;j<outH;j++){
+    const y=j*scale-margin;
+    for(let i=0;i<outW;i++){
+      const x=i*scale-margin;
+      const w=H[6]*x+H[7]*y+H[8], u=(H[0]*x+H[1]*y+H[2])/w-0.5, v=(H[3]*x+H[4]*y+H[5])/w-0.5, o=(j*outW+i)*4;
+      if(!(u>=0&&v>=0&&u<sw-1&&v<sh-1)){continue;}
+      const x0=u|0,y0=v|0,fx=u-x0,fy=v-y0,p=(y0*sw+x0)*4,q=p+sw*4;
+      for(let c=0;c<3;c++)d[o+c]=(src[p+c]*(1-fx)+src[p+4+c]*fx)*(1-fy)+(src[q+c]*(1-fx)+src[q+4+c]*fx)*fy;
+      d[o+3]=255;
+    }
+  }
+  return {img:out,w:outW,h:outH,scale,margin};
+}
+
+/* ---------- finding the table ---------- */
+function rgb2hsv(r,g,b){const mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn;let h=0;
+  if(d){if(mx===r)h=((g-b)/d)%6;else if(mx===g)h=(b-r)/d+2;else h=(r-g)/d+4;h*=60;if(h<0)h+=360;}
+  return [h,mx?d/mx:0,mx/255];}
+const hueDiff=(a,b)=>{const d=Math.abs(a-b)%360;return d>180?360-d:d;};
+function convexHull(p){
+  p=p.slice().sort((a,b)=>a[0]-b[0]||a[1]-b[1]);
+  const cr=(o,a,b)=>(a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]);
+  const lo=[],up=[];
+  for(const q of p){while(lo.length>1&&cr(lo[lo.length-2],lo[lo.length-1],q)<=0)lo.pop();lo.push(q);}
+  for(const q of p.slice().reverse()){while(up.length>1&&cr(up[up.length-2],up[up.length-1],q)<=0)up.pop();up.push(q);}
+  return lo.slice(0,-1).concat(up.slice(0,-1));
+}
+const quadArea=q=>Math.abs(q.reduce((s,p,i)=>{const n=q[(i+1)%4];return s+p[0]*n[1]-n[0]*p[1];},0))/2;
+// Put four points in the order they go round the screen anticlockwise (as the table corners
+// baulk-left, baulk-right, top-right, top-left do when the camera looks down on the table).
+function ringOrder(q){
+  const cx=q.reduce((s,p)=>s+p[0],0)/4, cy=q.reduce((s,p)=>s+p[1],0)/4;
+  return q.slice().sort((a,b)=>Math.atan2(-(a[1]-cy),a[0]-cx)-Math.atan2(-(b[1]-cy),b[0]-cx));
+}
+function clothQuad(ph){
+  const S=Math.min(1,900/Math.max(ph.w,ph.h)), w=Math.round(ph.w*S), h=Math.round(ph.h*S);
+  const cv=document.createElement("canvas");cv.width=w;cv.height=h;
+  const cx=cv.getContext("2d",{willReadFrequently:true});cx.drawImage(ph.canvas,0,0,w,h);
+  const d=cx.getImageData(0,0,w,h).data, N=w*h, H=new Float32Array(N), Sa=new Float32Array(N), V=new Float32Array(N);
+  const hist=new Float32Array(36);
+  for(let i=0;i<N;i++){const [hh,s,v]=rgb2hsv(d[i*4],d[i*4+1],d[i*4+2]);H[i]=hh;Sa[i]=s;V[i]=v;
+    const x=i%w,y=(i/w)|0; if(s>0.3&&v>0.15&&x>w*0.15&&x<w*0.85&&y>h*0.15&&y<h*0.85)hist[Math.floor(hh/10)%36]+=1;}
+  let hb=0;for(let k=1;k<36;k++)if(hist[k]>hist[hb])hb=k;
+  let hs=0,hw=0;for(let k=-1;k<=1;k++){const kk=(hb+k+36)%36;hs+=hist[kk]*((hb+k)*10+5);hw+=hist[kk];}
+  const h0=((hs/hw)%360+360)%360;
+  const m=new Uint8Array(N);
+  for(let i=0;i<N;i++)m[i]=(hueDiff(H[i],h0)<24&&Sa[i]>0.22&&V[i]>0.1)?1:0;
+  // largest connected region of cloth colour
+  const lab=new Int32Array(N);let best=0,bestN=0,cur=0;const st=[];
+  for(let i=0;i<N;i++){if(!m[i]||lab[i])continue;cur++;let n=0;st.push(i);lab[i]=cur;
+    while(st.length){const p=st.pop();n++;const x=p%w;
+      for(const q of [p-1,p+1,p-w,p+w]){if(q<0||q>=N||(q===p-1&&x===0)||(q===p+1&&x===w-1))continue;
+        if(m[q]&&!lab[q]){lab[q]=cur;st.push(q);}}}
+    if(n>bestN){bestN=n;best=cur;}}
+  if(bestN<N*0.03)return null;
+  const pts=[];for(let i=0;i<N;i++)if(lab[i]===best)pts.push([i%w,(i/w)|0]);
+  const hull=convexHull(pts);
+  // four hull points enclosing the most area: start from the diagonal extremes, then improve
+  const ext=f=>hull.reduce((a,p)=>f(p)>f(a)?p:a,hull[0]);
+  let q=[ext(p=>-p[0]-p[1]),ext(p=>p[0]-p[1]),ext(p=>p[0]+p[1]),ext(p=>-p[0]+p[1])];
+  for(let round=0;round<4;round++)for(let k=0;k<4;k++){
+    let ba=quadArea(q),bp=q[k];
+    for(const p of hull){const t=q.slice();t[k]=p;const a=quadArea(t);if(a>ba){ba=a;bp=p;}}
+    q[k]=bp;
+  }
+  // The cloth's corners are cut away by the pockets, so fit a straight line to the middle part of
+  // each side and use where neighbouring sides meet.
+  q=ringOrder(q);
+  const gx=q.reduce((a,p)=>a+p[0],0)/4, gy=q.reduce((a,p)=>a+p[1],0)/4;
+  const inR=(x,y)=>{x=Math.round(x);y=Math.round(y);return x>=0&&y>=0&&x<w&&y<h&&lab[y*w+x]===best;};
+  const lines=[];
+  for(let i=0;i<4;i++){
+    const A=q[i],B=q[(i+1)%4], dx=B[0]-A[0], dy=B[1]-A[1], len=Math.hypot(dx,dy);
+    let nx=dy/len, ny=-dx/len; const mx=(A[0]+B[0])/2, my=(A[1]+B[1])/2;
+    if((mx-gx)*nx+(my-gy)*ny<0){nx=-nx;ny=-ny;}
+    const pts=[], reach=Math.max(12,len*0.06);
+    for(let t=0.12;t<=0.88;t+=0.01){ if(t>0.43&&t<0.57)continue;
+      const px=A[0]+dx*t, py=A[1]+dy*t;
+      for(let e=reach;e>-reach*2;e-=0.5){if(inR(px+nx*e,py+ny*e)){pts.push([px+nx*e,py+ny*e]);break;}}}
+    if(pts.length<8){lines.push(null);continue;}
+    let use=pts, fit=null;
+    for(let pass=0;pass<3;pass++){
+      const cx=use.reduce((a,p)=>a+p[0],0)/use.length, cy=use.reduce((a,p)=>a+p[1],0)/use.length;
+      let sxx=0,sxy=0,syy=0;for(const p of use){sxx+=(p[0]-cx)**2;sxy+=(p[0]-cx)*(p[1]-cy);syy+=(p[1]-cy)**2;}
+      const ang=0.5*Math.atan2(2*sxy,sxx-syy), ux=Math.cos(ang), uy=Math.sin(ang);
+      let lnx=-uy, lny=ux; if(lnx*nx+lny*ny<0){lnx=-lnx;lny=-lny;}
+      fit={cx,cy,nx:lnx,ny:lny};
+      const res=pts.map(p=>(p[0]-cx)*lnx+(p[1]-cy)*lny);
+      const sorted=res.slice().sort((a,b)=>b-a), top=sorted[Math.floor(sorted.length*0.2)];
+      use=pts.filter((p,k)=>res[k]>top-2.5); if(use.length<6)break;   // keep the outer edge, drop notches
+    }
+    lines.push(fit);
+  }
+  let out=q;
+  if(lines.every(Boolean)){
+    const meet=(a,b)=>{const det=a.nx*b.ny-a.ny*b.nx; if(Math.abs(det)<1e-6)return null;
+      const ca=a.nx*a.cx+a.ny*a.cy, cb=b.nx*b.cx+b.ny*b.cy; return [(ca*b.ny-a.ny*cb)/det,(a.nx*cb-ca*b.nx)/det];};
+    const c=[0,1,2,3].map(i=>meet(lines[(i+3)%4],lines[i]));
+    if(c.every(p=>p&&Math.hypot(p[0]-gx,p[1]-gy)<Math.hypot(w,h)))out=c;
+  }
+  return {quad:ringOrder(out.map(p=>[(p[0]+0.5)/S,(p[1]+0.5)/S])), hue:h0};
+}
+// How strongly the table's own baulk line (and D) show up where a corner labelling says they should be.
+function baulkScore(ph,g,H){
+  const lum=(x,y)=>{let best=0;for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
+      const u=Math.round(x)+dx,v=Math.round(y)+dy;if(u<0||v<0||u>=ph.w||v>=ph.h)continue;
+      const o=(v*ph.w+u)*4,l=0.3*ph.data.data[o]+0.59*ph.data.data[o+1]+0.11*ph.data.data[o+2];if(l>best)best=l;}return best;};
+  const pts=[];
+  for(let k=0;k<=40;k++){const y=g.W*(0.08+0.84*k/40);pts.push([g.baulk,y,1,0]);}
+  if(g.D)for(let k=0;k<=24;k++){const a=Math.PI/2+Math.PI*k/24;pts.push([g.baulk+g.D*Math.cos(a),g.W/2+g.D*Math.sin(a),-Math.cos(a),-Math.sin(a)]);}
+  let s=0,n=0;
+  for(const [x,y,nx,ny] of pts){
+    const [u,v]=hApply(H,x,y), [u1,v1]=hApply(H,x+nx*30,y+ny*30), [u2,v2]=hApply(H,x-nx*30,y-ny*30);
+    if(u<1||v<1||u>=ph.w-1||v>=ph.h-1)continue;
+    const on=lum(u,v), off=(lum(u1,v1)+lum(u2,v2))/2+1; s+=Math.max(-0.5,Math.min(2,(on-off)/off)); n++;
+  }
+  return n?s/n:0;
+}
+function autoCorners(ph,g){
+  const cq=clothQuad(ph); if(!cq)return null;
+  const {L,W,C}=g, outer=[[-C,-C],[-C,W+C],[L+C,W+C],[L+C,-C]];
+  let best=null;
+  for(let k=0;k<4;k++){
+    const q=[0,1,2,3].map(i=>cq.quad[(i+k)%4]);
+    const Hout=homography(outer,q); if(!Hout)continue;
+    const corners=tableCorners(g).map(([x,y])=>hApply(Hout,x,y));
+    const H=homography(tableCorners(g),corners); if(!H)continue;
+    const pz=estimatePose(H,ph.w,ph.h);
+    const cand={k,corners,H,shape:pz.consistency+(pz.valid?0:2),baulk:baulkScore(ph,g,H)};
+    if(!best)best=[cand];else best.push(cand);
+  }
+  if(!best)return null;
+  // choose which sides are long (camera geometry agrees), then which end is baulk (line visible there)
+  best.sort((a,b)=>a.shape-b.shape);
+  const aspect=best[0].k%2, pair=best.filter(c=>c.k%2===aspect).sort((a,b)=>b.baulk-a.baulk);
+  return pair[0].corners;
+}
+
+/* ---------- finding balls in one straightened photo ---------- */
+const PROTO={red:[355,.82,1.25],pink:[342,.42,1.7],yellow:[48,.84,1.75],white:[45,.08,1.9],
+  blue:[222,.78,.95],brown:[22,.7,.7],black:[0,.0,.28],green:[150,.85,.7]};
+function classify(r,gc,b,vref,types){
+  const [h,s,v]=rgb2hsv(r,gc,b), vr=Math.max(0.05,v/vref);
+  const wc=Math.min(1,vr/0.55);
+  const out={};let tot=0;
+  for(const t of types){const p=PROTO[t]; if(!p)continue;
+    const ax=s*Math.cos(h*Math.PI/180),ay=s*Math.sin(h*Math.PI/180),bx=p[1]*Math.cos(p[0]*Math.PI/180),by=p[1]*Math.sin(p[0]*Math.PI/180);
+    const d2=wc*((ax-bx)**2+(ay-by)**2)*4+Math.log(vr/p[2])**2*1.4;
+    const l=Math.exp(-d2/0.09); out[t]=l; tot+=l;}
+  for(const t in out)out[t]=tot>1e-12?out[t]/tot:1/Object.keys(out).length;
+  return out;
+}
+function detectBalls(ph,g){
+  const R0=objR(g), s=(2*R0)/24, margin=g.C;           // ~24 px per ball diameter in the straightened photo
+  const rect=rectify(ph,g,s,margin); ph.rect=rect;
+  const {w,h}=rect, d=rect.img.data, N=w*h, rp=R0/s;
+  const V=new Float32Array(N), CR=new Float32Array(N), CG=new Float32Array(N), ok=new Uint8Array(N);
+  for(let i=0;i<N;i++){const o=i*4;if(!d[o+3])continue;const r=d[o],gg=d[o+1],b=d[o+2],sum=r+gg+b+3;
+    V[i]=Math.max(r,gg,b)+1;CR[i]=r/sum;CG[i]=gg/sum;ok[i]=1;}
+  const toPx=(x,y)=>[(x+margin)/s,(y+margin)/s], toMm=(i,j)=>[i*s-margin,j*s-margin];
+  // cloth colour: global median over the playing area, then a smooth local version (lighting varies)
+  const inPlay=(i,j)=>{const [x,y]=toMm(i,j);return x>=0&&x<=g.L&&y>=0&&y<=g.W;};
+  const med=a=>{a.sort((p,q)=>p-q);return a[a.length>>1];};
+  const gr=[],gg2=[],gv=[];
+  for(let j=0;j<h;j+=3)for(let i=0;i<w;i+=3){const k=j*w+i;if(ok[k]&&inPlay(i,j)){gr.push(CR[k]);gg2.push(CG[k]);gv.push(V[k]);}}
+  if(gr.length<100)return [];
+  const cr0=med(gr),cg0=med(gg2),v0=med(gv);
+  const B=24, bw=Math.ceil(w/B), bh=Math.ceil(h/B), refV=new Float32Array(bw*bh), refR=new Float32Array(bw*bh), refG=new Float32Array(bw*bh);
+  for(let by=0;by<bh;by++)for(let bx=0;bx<bw;bx++){
+    const a=[],b=[],c=[];
+    for(let j=by*B;j<Math.min(h,by*B+B);j+=2)for(let i=bx*B;i<Math.min(w,bx*B+B);i+=2){const k=j*w+i;
+      if(ok[k]&&Math.hypot(CR[k]-cr0,CG[k]-cg0)<0.05){a.push(V[k]);b.push(CR[k]);c.push(CG[k]);}}
+    const k=by*bw+bx; if(a.length>12){refV[k]=med(a);refR[k]=med(b);refG[k]=med(c);}else{refV[k]=0;}
+  }
+  for(let pass=0;pass<3;pass++)for(let k=0;k<bw*bh;k++)if(!refV[k]){ // fill gaps from neighbours
+    let n=0,sv=0,sr=0,sg=0;const bx=k%bw,by=(k/bw)|0;
+    for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const x=bx+dx,y=by+dy;if(x<0||y<0||x>=bw||y>=bh)continue;const q=y*bw+x;if(refV[q]){n++;sv+=refV[q];sr+=refR[q];sg+=refG[q];}}
+    if(n){refV[k]=sv/n;refR[k]=sr/n;refG[k]=sg/n;}else if(pass===2){refV[k]=v0;refR[k]=cr0;refG[k]=cg0;}
+  }
+  const ref=(i,j,arr)=>{const fx=Math.max(0,Math.min(bw-1.001,i/B-0.5)),fy=Math.max(0,Math.min(bh-1.001,j/B-0.5));
+    const x0=fx|0,y0=fy|0,x1=Math.min(bw-1,x0+1),y1=Math.min(bh-1,y0+1),ax=fx-x0,ay=fy-y0;
+    return (arr[y0*bw+x0]*(1-ax)+arr[y0*bw+x1]*ax)*(1-ay)+(arr[y1*bw+x0]*(1-ax)+arr[y1*bw+x1]*ax)*ay;};
+  // ball pixels: a different colour from the cloth, much brighter, or much darker (shadows are only
+  // moderately darker and keep the cloth's colour, so they are left out)
+  const mask=new Uint8Array(N), VR=new Float32Array(N);
+  const pockets=[[0,0,120],[0,g.W,120],[g.L,0,120],[g.L,g.W,120],[g.L/2,0,95],[g.L/2,g.W,95]];
+  for(let j=0;j<h;j++)for(let i=0;i<w;i++){const k=j*w+i;if(!ok[k])continue;
+    const rv=ref(i,j,refV),vr=V[k]/rv;VR[k]=vr;
+    const dc=Math.hypot(CR[k]-ref(i,j,refR),CG[k]-ref(i,j,refG));
+    let m=dc>0.055||vr>1.45||vr<0.36;
+    if(m&&(vr<0.5||dc<0.055)){const [x,y]=toMm(i,j); // pocket openings are dark: don't mistake them for balls
+      for(const [px,py,pr] of pockets)if(Math.hypot(x-px,y-py)<pr){m=false;break;}}
+    mask[k]=m?1:0;}
+  // summed-area table for fast "how much of this square is ball" scores
+  const I=new Uint32Array((w+1)*(h+1));
+  for(let j=0;j<h;j++){let row=0;for(let i=0;i<w;i++){row+=mask[j*w+i];I[(j+1)*(w+1)+i+1]=I[j*(w+1)+i+1]+row;}}
+  const a=Math.max(3,Math.round(0.72*rp)), area=(2*a+1)**2;
+  const box=(i,j)=>(I[(j+a+1)*(w+1)+i+a+1]-I[(j-a)*(w+1)+i+a+1]-I[(j+a+1)*(w+1)+i-a]+I[(j-a)*(w+1)+i-a])/area;
+  const pose=ph.pose&&ph.pose.valid?ph.pose:null;
+  const camPx=pose?toPx(pose.cam[0],pose.cam[1]):null, Hp=pose?pose.height/s:0;
+  // stretch factor: a ball seen from elevation angle t covers an ellipse r/sin(t) long, r wide
+  const geo=(i,j)=>{if(!pose)return {k:1,ux:1,uy:0};const dx=i-camPx[0],dy=j-camPx[1],dd=Math.hypot(dx,dy)||1;
+    return {k:Math.hypot(dd,Hp)/Hp,ux:dx/dd,uy:dy/dd};};
+  const sdist=(i,j,c)=>{const dx=i-c.i,dy=j-c.j;const al=(dx*c.g.ux+dy*c.g.uy)/c.g.k,ac=-dx*c.g.uy+dy*c.g.ux;return Math.hypot(al,ac);};
+  const cands=[];
+  for(let j=a+1;j<h-a-1;j++)for(let i=a+1;i<w-a-1;i++){const f=box(i,j);if(f<0.6)continue;
+    let peak=true;for(let dj=-1;dj<=1&&peak;dj++)for(let di=-1;di<=1;di++){if((di||dj)&&box(i+di,j+dj)>f){peak=false;break;}}
+    if(peak)cands.push({i,j,f});}
+  cands.sort((p,q)=>q.f-p.f);
+  const picks=[];
+  for(const c of cands){c.g=geo(c.i,c.j);
+    if(picks.some(p=>sdist(c.i,c.j,p)<1.45*rp||sdist(p.i,p.j,c)<1.45*rp))continue;
+    picks.push(c); if(picks.length>60)break;}
+  // refine each pick to the centre of its patch, sharing pixels between touching balls
+  for(let it=0;it<4;it++){
+    for(const c of picks){c.g=geo(c.i,c.j);c.near=picks.filter(p=>p!==c&&Math.hypot(p.i-c.i,p.j-c.j)<5*rp*c.g.k);}
+    for(const c of picks){
+      const R=Math.ceil(1.3*rp*c.g.k)+2;let sx=0,sy=0,n=0;
+      for(let j=Math.max(0,Math.round(c.j)-R);j<=Math.min(h-1,Math.round(c.j)+R);j++)
+        for(let i=Math.max(0,Math.round(c.i)-R);i<=Math.min(w-1,Math.round(c.i)+R);i++){
+          const k=j*w+i;if(!mask[k])continue;const dd=sdist(i,j,c);if(dd>1.12*rp)continue;
+          if(c.near.some(p=>sdist(i,j,p)<dd))continue;sx+=i;sy+=j;n++;}
+      c.n=n;if(n){c.ni=sx/n;c.nj=sy/n;}
+    }
+    for(const c of picks)if(c.n){c.i=c.ni;c.j=c.nj;}
+  }
+  const dets=[];
+  const types=Object.keys(g.colours);
+  for(const c of picks){
+    c.g=geo(c.i,c.j);
+    const cover=c.n/(Math.PI*rp*rp*c.g.k);
+    if(!(cover>0.42))continue;
+    // colour from the middle of the patch, ignoring the brightest (glare) and darkest pixels
+    const px=[];const R=Math.ceil(rp*c.g.k)+1;
+    for(let j=Math.max(0,Math.round(c.j)-R);j<=Math.min(h-1,Math.round(c.j)+R);j++)
+      for(let i=Math.max(0,Math.round(c.i)-R);i<=Math.min(w-1,Math.round(c.i)+R);i++){const k=j*w+i;
+        if(mask[k]&&sdist(i,j,c)<0.8*rp)px.push(k);}
+    if(px.length<6)continue;
+    px.sort((p,q)=>V[p]-V[q]);
+    const lo=Math.floor(px.length*0.55),hi=Math.max(lo+1,Math.floor(px.length*0.92)); // lit top, minus glare
+    const rs=[],gs=[],bs=[];for(let t=lo;t<hi;t++){const o=px[t]*4;rs.push(d[o]);gs.push(d[o+1]);bs.push(d[o+2]);}
+    const vref=ref(c.i,c.j,refV)/255;
+    const probs=classify(med(rs),med(gs),med(bs),vref,types);
+    // undo the lean: the patch centre is where the ray through the ball's centre (r above the cloth) meets the cloth
+    let [x,y]=toMm(c.i,c.j), weight=1;
+    if(pose){const Hc=pose.height, cx=pose.cam[0], cy=pose.cam[1];
+      x=cx+(x-cx)*(Hc-R0)/Hc; y=cy+(y-cy)*(Hc-R0)/Hc; weight=1/(c.g.k*c.g.k);}
+    if(x<-R0||y<-R0||x>g.L+R0||y>g.W+R0)continue;
+    dets.push({x,y,probs,weight,cover:Math.min(1,cover)});
+  }
+  return dets;
+}
+
+/* ---------- combining photos ---------- */
+function fuseDetections(photos,g){
+  const R0=objR(g), nv=photos.length;
+  const all=[];photos.forEach((p,v)=>p.dets.forEach(d=>all.push({...d,view:v})));
+  all.sort((a,b)=>b.weight*b.cover-a.weight*a.cover);
+  const cl=[];
+  for(const d of all){
+    let best=null,bd=1.6*R0;
+    for(const c of cl){if(c.views.has(d.view))continue;const dd=Math.hypot(c.x-d.x,c.y-d.y);if(dd<bd){bd=dd;best=c;}}
+    if(!best){cl.push({x:d.x,y:d.y,m:[d],views:new Set([d.view])});continue;}
+    best.m.push(d);best.views.add(d.view);
+    const W=best.m.reduce((s,q)=>s+q.weight,0);
+    best.x=best.m.reduce((s,q)=>s+q.x*q.weight,0)/W;best.y=best.m.reduce((s,q)=>s+q.y*q.weight,0)/W;
+  }
+  for(const c of cl){
+    const p={};let tot=0;
+    for(const d of c.m)for(const t in d.probs){p[t]=(p[t]||0)+d.probs[t]*(0.4+d.weight);tot+=d.probs[t]*(0.4+d.weight);}
+    for(const t in p)p[t]/=tot;
+    c.probs=p; c.seen=c.m.length;
+    // agreement between photos about the colour
+    const tops=c.m.map(d=>Object.entries(d.probs).sort((a,b)=>b[1]-a[1])[0][0]);
+    c.agree=tops.every(t=>t===tops[0]);
+    c.support=c.m.reduce((s,d)=>s+d.cover,0)/nv;
+  }
+  // a patch seen in only one of several photos, weakly, is most likely not a ball
+  return cl.filter(c=>nv===1||c.seen>1||c.m[0].cover>0.7);
+}
+function assignTypes(cl,g,nv){
+  const cap={};g.balls.forEach(b=>cap[b.type]=(cap[b.type]||0)+1);
+  const pairs=[];cl.forEach((c,ci)=>{for(const t in c.probs)pairs.push({ci,t,p:c.probs[t]});});
+  pairs.sort((a,b)=>b.p-a.p);
+  const done=new Set(),out=[];
+  for(const q of pairs){
+    if(done.has(q.ci)||!cap[q.t]||q.p<0.01)continue;
+    cap[q.t]--;done.add(q.ci);const c=cl[q.ci];
+    const top=Math.max(...Object.values(c.probs));
+    const flag=q.p<0.6||q.p<top-1e-9||(!c.agree&&q.p<0.7)||(nv>1&&c.seen<nv&&c.support<0.5);
+    out.push({x:c.x,y:c.y,type:q.t,flag}); c.why={p:+q.p.toFixed(2),top:+top.toFixed(2),agree:c.agree,seen:c.seen,support:+c.support.toFixed(2)};
+  }
+  return out;
+}
+function relaxBalls(g){
+  const on=g.balls.filter(b=>b.on);
+  for(let it=0;it<40;it++){let moved=false;
+    for(let i=0;i<on.length;i++)for(let j=i+1;j<on.length;j++){const a=on[i],b=on[j];
+      let dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy);const need=a.r+b.r+0.2;
+      if(d<need){if(d<1e-6){dx=1;dy=0;d=1;}const push=(need-d)/2;a.x-=dx/d*push;a.y-=dy/d*push;b.x+=dx/d*push;b.y+=dy/d*push;moved=true;}}
+    for(const b of on){b.x=Math.max(b.r,Math.min(g.L-b.r,b.x));b.y=Math.max(b.r,Math.min(g.W-b.r,b.y));}
+    if(!moved)break;}
+}
+// Photos from the same phone share a focal length. Pool the per-photo estimates with a typical
+// phone value (about 0.6 x the image diagonal), trusting each estimate as far as its geometry allows.
+function shareFocal(photos){
+  let sw=1,sl=Math.log(0.6);
+  for(const p of photos){const q=estimatePose(p.H,p.w,p.h);const wt=q.consistency<0.1?3:q.consistency<0.3?1:0.25;
+    sw+=wt;sl+=wt*Math.log(q.fGeo/Math.hypot(p.w,p.h));}
+  const rel=Math.exp(sl/sw);
+  for(const p of photos)p.pose=estimatePose(p.H,p.w,p.h,rel*Math.hypot(p.w,p.h));
+}
+function buildFromPhotos(g){
+  const photos=g.photoSet.filter(p=>p.H);
+  shareFocal(photos);
+  for(const p of photos){p.dets=detectBalls(p,g);}
+  const cl=fuseDetections(photos,g), found=assignTypes(cl,g,photos.length); g._cl=cl;
+  pushHistory();
+  const pool={};found.forEach(f=>(pool[f.type]=pool[f.type]||[]).push(f));
+  let placed=0,flagged=0;
+  g.balls.forEach(b=>{const f=(pool[b.type]||[]).shift();
+    if(f){b.on=true;b.x=f.x;b.y=f.y;b.flag=f.flag;placed++;if(f.flag)flagged++;}else{b.on=false;b.flag=false;}});
+  relaxBalls(g);
+  // photo underlays, straightened to the table
+  photos.forEach(p=>{const c=document.createElement("canvas");c.width=p.rect.w;c.height=p.rect.h;
+    c.getContext("2d").putImageData(p.rect.img,0,0);p.underlay=c.toDataURL("image/jpeg",0.82);p.umargin=p.rect.margin;});
+  g.underlayIdx=photos.length?0:-1;
+  return {placed,flagged,missing:g.balls.length-placed,views:photos.length};
+}
+
+/* ---------- photo panel ---------- */
+const pp=document.getElementById("photopanel"), ppSlots=document.getElementById("pp-slots"), ppMsg=document.getElementById("pp-msg");
+const ppList=document.getElementById("pp-list"), ppEdit=document.getElementById("pp-edit");
+const ppCanvas=document.getElementById("pp-canvas"), ppPrev=document.getElementById("pp-preview");
+const ppBuild=document.getElementById("pp-build"), ppTake=document.getElementById("pp-take"), ppChoose=document.getElementById("pp-choose");
+const inTake=document.getElementById("pp-in-take"), inChoose=document.getElementById("pp-in-choose");
+const MAXPHOTOS=3;
+let editing=null, ppReturn=null;
+function openPhotos(){
+  closeSheet(); if(!G.photoSet)G.photoSet=[];
+  ppReturn=document.activeElement; pp.hidden=false; document.body.classList.add("pp-open");
+  document.getElementById("pp-game").textContent=G.key==="pool"?"English pool":"Snooker";
+  document.querySelectorAll(".snk-only").forEach(e=>e.hidden=!G.D);
+  showList(); document.getElementById("pp-close").focus();
+}
+function closePhotos(){pp.hidden=true;document.body.classList.remove("pp-open");editing=null;if(ppReturn&&ppReturn.focus)ppReturn.focus();}
+document.getElementById("pp-close").addEventListener("click",closePhotos);
+document.getElementById("photos").addEventListener("click",openPhotos);
+pp.addEventListener("keydown",e=>{if(e.key==="Escape"){e.stopPropagation();editing?showList():closePhotos();}});
+function showList(){
+  editing=null; ppEdit.hidden=true; ppList.hidden=false;
+  ppSlots.textContent="";
+  G.photoSet.forEach((ph,i)=>{
+    const card=document.createElement("div");card.className="pp-slot";
+    const cv=document.createElement("canvas");const tw=150,th=Math.round(tw*ph.h/ph.w);cv.width=tw*2;cv.height=th*2;cv.style.width=tw+"px";cv.style.height=th+"px";
+    const cx=cv.getContext("2d");cx.drawImage(ph.canvas,0,0,cv.width,cv.height);
+    if(ph.corners){const k=cv.width/ph.w;cx.strokeStyle="#FFE58A";cx.lineWidth=3;cx.beginPath();
+      ph.corners.forEach((p,j)=>j?cx.lineTo(p[0]*k,p[1]*k):cx.moveTo(p[0]*k,p[1]*k));cx.closePath();cx.stroke();}
+    const info=document.createElement("div");info.className="pp-info";
+    info.innerHTML=`<b>Photo ${i+1}</b><span class="dim">${ph.corners?"Corners set":"Corners needed"}</span>`;
+    const adj=document.createElement("button");adj.type="button";adj.textContent="Adjust corners";adj.addEventListener("click",()=>editCorners(ph));
+    const rm=document.createElement("button");rm.type="button";rm.textContent="Remove";
+    rm.addEventListener("click",()=>{G.photoSet.splice(i,1);showList();});
+    info.append(adj,rm); card.append(cv,info); ppSlots.appendChild(card);
+  });
+  const n=G.photoSet.length;
+  ppTake.disabled=ppChoose.disabled=n>=MAXPHOTOS;
+  ppBuild.disabled=!G.photoSet.some(p=>p.H);
+  ppMsg.textContent=n?(n<MAXPHOTOS?`${n} photo${n>1?"s":""} added. Another angle makes the layout more accurate.`:"Three photos added."):"";
+}
+ppTake.addEventListener("click",()=>inTake.click());
+ppChoose.addEventListener("click",()=>inChoose.click());
+async function addFiles(files){
+  const room=MAXPHOTOS-G.photoSet.length; const list=[...files].slice(0,room); if(!list.length)return;
+  let last=null;
+  for(const f of list){
+    ppMsg.textContent="Opening photo…"; await new Promise(r=>setTimeout(r,20));
+    try{const ph=await loadPhoto(f);
+      ppMsg.textContent="Finding the table…"; await new Promise(r=>setTimeout(r,20));
+      const c=autoCorners(ph,G); setCorners(ph,G,c||defaultCorners(ph)); ph.auto=!!c;
+      G.photoSet.push(ph); last=ph;
+    }catch(err){ppMsg.textContent=err.message;}
+  }
+  if(last)editCorners(last);
+}
+inTake.addEventListener("change",()=>{addFiles(inTake.files);inTake.value="";});
+inChoose.addEventListener("change",()=>{addFiles(inChoose.files);inChoose.value="";});
+function defaultCorners(ph){const w=ph.w,h=ph.h;return [[w*0.12,h*0.88],[w*0.88,h*0.88],[w*0.72,h*0.18],[w*0.28,h*0.18]];}
+
+/* ---------- corner editor ---------- */
+let edState=null;
+function editCorners(ph){
+  editing=ph; ppList.hidden=true; ppEdit.hidden=false;
+  document.getElementById("pp-edit-msg").textContent=ph.auto===false?"The table couldn't be found automatically. Drag the four markers onto the corners.":"";
+  requestAnimationFrame(()=>{layoutEditor();drawEditor();drawPreview();});
+}
+function layoutEditor(){
+  const ph=editing, box=ppCanvas.parentElement.getBoundingClientRect(), dpr=window.devicePixelRatio||1;
+  const maxH=Math.max(200,Math.min(box.width*ph.h/ph.w, window.innerHeight*0.55));
+  const k=Math.min(box.width/ph.w,maxH/ph.h), cw=ph.w*k, ch=ph.h*k;
+  ppCanvas.style.width=cw+"px";ppCanvas.style.height=ch+"px";ppCanvas.width=Math.round(cw*dpr);ppCanvas.height=Math.round(ch*dpr);
+  edState={k,dpr,drag:null,mag:null};
+}
+function drawEditor(){
+  const ph=editing; if(!ph||!edState)return;
+  const {k,dpr}=edState, cx=ppCanvas.getContext("2d"), s=k*dpr;
+  cx.setTransform(1,0,0,1,0,0);cx.drawImage(ph.canvas,0,0,ppCanvas.width,ppCanvas.height);
+  const P=ph.corners.map(p=>[p[0]*s,p[1]*s]);
+  cx.lineWidth=2*dpr;cx.strokeStyle="rgba(255,255,255,.9)";cx.beginPath();P.forEach((p,i)=>i?cx.lineTo(...p):cx.moveTo(...p));cx.closePath();cx.stroke();
+  cx.lineWidth=4*dpr;cx.strokeStyle="#FFE58A";cx.beginPath();cx.moveTo(...P[0]);cx.lineTo(...P[1]);cx.stroke();
+  cx.font=`600 ${12*dpr}px system-ui,sans-serif`;cx.textAlign="center";cx.textBaseline="middle";
+  const mid=[(P[0][0]+P[1][0])/2,(P[0][1]+P[1][1])/2];
+  label(cx,"Baulk end",mid[0],mid[1]+16*dpr,dpr,"#FFE58A");
+  P.forEach((p,i)=>{cx.beginPath();cx.arc(p[0],p[1],11*dpr,0,Math.PI*2);cx.fillStyle="rgba(0,0,0,.35)";cx.fill();
+    cx.lineWidth=2.5*dpr;cx.strokeStyle=i<2?"#FFE58A":"#FFFFFF";cx.stroke();
+    cx.beginPath();cx.arc(p[0],p[1],2*dpr,0,Math.PI*2);cx.fillStyle=i<2?"#FFE58A":"#FFFFFF";cx.fill();
+    const off=p[1]<30*dpr?20:-20; label(cx,CORNER_LABELS[i],p[0],p[1]+off*dpr,dpr,i<2?"#FFE58A":"#FFFFFF");});
+  if(edState.mag){ // magnifier while dragging a marker
+    const i=edState.mag, p=ph.corners[i], R=64*dpr, z=3, left=p[0]*s>ppCanvas.width/2;
+    const mx=left?R+8*dpr:ppCanvas.width-R-8*dpr, my=R+8*dpr;
+    cx.save();cx.beginPath();cx.arc(mx,my,R,0,Math.PI*2);cx.clip();
+    const half=R/(z*s); // source half-size in photo px
+    cx.drawImage(ph.canvas,p[0]-half,p[1]-half,2*half,2*half,mx-R,my-R,2*R,2*R);
+    cx.strokeStyle=i<2?"#FFE58A":"#fff";cx.lineWidth=1.5*dpr;cx.beginPath();cx.moveTo(mx-R,my);cx.lineTo(mx+R,my);cx.moveTo(mx,my-R);cx.lineTo(mx,my+R);cx.stroke();
+    cx.restore();cx.lineWidth=3*dpr;cx.strokeStyle="#fff";cx.beginPath();cx.arc(mx,my,R,0,Math.PI*2);cx.stroke();
+  }
+}
+function label(cx,t,x,y,dpr,col){const w=cx.measureText(t).width+10*dpr;cx.fillStyle="rgba(0,0,0,.6)";
+  cx.fillRect(x-w/2,y-9*dpr,w,18*dpr);cx.fillStyle=col;cx.fillText(t,x,y);}
+function drawPreview(){
+  const ph=editing; if(!ph||!ph.H)return;
+  const dpr=window.devicePixelRatio||1, cssW=Math.min(ppPrev.parentElement.clientWidth||320,560), m=G.C;
+  const scale=(G.L+2*m)/(cssW*dpr), r=rectify(ph,G,scale,m);
+  ppPrev.width=r.w;ppPrev.height=r.h;ppPrev.style.width=cssW+"px";ppPrev.style.height=(cssW*r.h/r.w)+"px";
+  const cx=ppPrev.getContext("2d");cx.fillStyle="#222";cx.fillRect(0,0,r.w,r.h);
+  const tmp=document.createElement("canvas");tmp.width=r.w;tmp.height=r.h;tmp.getContext("2d").putImageData(r.img,0,0);cx.drawImage(tmp,0,0);
+  const X=x=>(x+m)/scale, Y=y=>(y+m)/scale;
+  cx.strokeStyle="rgba(255,229,138,.95)";cx.lineWidth=1.5*dpr;cx.setLineDash([6*dpr,4*dpr]);
+  cx.strokeRect(X(0),Y(0),X(G.L)-X(0),Y(G.W)-Y(0));
+  cx.beginPath();cx.moveTo(X(G.baulk),Y(0));cx.lineTo(X(G.baulk),Y(G.W));cx.stroke();
+  if(G.D){cx.beginPath();cx.arc(X(G.baulk),Y(G.W/2),G.D/scale,Math.PI/2,Math.PI*1.5);cx.stroke();}
+  cx.setLineDash([]);
+  for(const k in G.spots){cx.beginPath();cx.arc(X(G.spots[k][0]),Y(G.spots[k][1]),3*dpr,0,Math.PI*2);cx.fillStyle="rgba(255,229,138,.95)";cx.fill();}
+}
+function edPoint(e){const r=ppCanvas.getBoundingClientRect();return [(e.clientX-r.left)/edState.k,(e.clientY-r.top)/edState.k];}
+ppCanvas.addEventListener("pointerdown",e=>{
+  if(!editing)return; const [x,y]=edPoint(e); let best=-1,bd=40/edState.k;
+  editing.corners.forEach((p,i)=>{const d=Math.hypot(p[0]-x,p[1]-y);if(d<bd){bd=d;best=i;}});
+  if(best<0)return; e.preventDefault(); ppCanvas.setPointerCapture(e.pointerId);
+  edState.drag={i:best,id:e.pointerId,last:[e.clientX,e.clientY],gear:e.pointerType==="mouse"?1:0.5}; edState.mag=best; drawEditor();
+});
+ppCanvas.addEventListener("pointermove",e=>{
+  const dr=edState&&edState.drag; if(!dr||e.pointerId!==dr.id)return;
+  const p=editing.corners[dr.i]; p[0]+=(e.clientX-dr.last[0])*dr.gear/edState.k; p[1]+=(e.clientY-dr.last[1])*dr.gear/edState.k;
+  p[0]=Math.max(0,Math.min(editing.w,p[0]));p[1]=Math.max(0,Math.min(editing.h,p[1]));
+  dr.last=[e.clientX,e.clientY]; drawEditor();
+});
+function edEnd(e){const dr=edState&&edState.drag;if(!dr||e.pointerId!==dr.id)return;edState.drag=null;edState.mag=null;
+  setCorners(editing,G,editing.corners);drawEditor();drawPreview();}
+ppCanvas.addEventListener("pointerup",edEnd);ppCanvas.addEventListener("pointercancel",edEnd);
+document.getElementById("pp-turn").addEventListener("click",()=>{
+  const c=editing.corners; setCorners(editing,G,[c[1],c[2],c[3],c[0]]); drawEditor(); drawPreview();});
+document.getElementById("pp-auto").addEventListener("click",()=>{
+  const c=autoCorners(editing,G); if(c){setCorners(editing,G,c);drawEditor();drawPreview();document.getElementById("pp-edit-msg").textContent="";}
+  else document.getElementById("pp-edit-msg").textContent="The table couldn't be found automatically. Drag the four markers onto the corners.";});
+document.getElementById("pp-done").addEventListener("click",showList);
+window.addEventListener("resize",()=>{if(editing){layoutEditor();drawEditor();drawPreview();}});
+
+ppBuild.addEventListener("click",()=>{
+  ppMsg.textContent="Finding the balls…"; ppBuild.disabled=true;
+  setTimeout(()=>{
+    let res; try{res=buildFromPhotos(G);}catch(err){ppMsg.textContent="Something went wrong reading the photos. Try adjusting the corners.";ppBuild.disabled=false;console.error(err);return;}
+    closePhotos(); G.selected=null; G.armed=false;
+    const parts=[`Placed ${res.placed} of ${G.balls.length} balls from ${res.views} photo${res.views>1?"s":""}.`];
+    if(res.flagged)parts.push(`${res.flagged} marked in orange to check.`);
+    if(res.missing)parts.push(`${res.missing} not found: they're in the tray.`);
+    G.notice=parts.join(" "); renderUnderlay(); render();
+  },30);
+});
+
+/* ---------- photo underlay on the board ---------- */
+const photoCtl=document.getElementById("photoctl");
+function renderUnderlay(){
+  G.underlay.textContent="";
+  const ps=(G.photoSet||[]).filter(p=>p.underlay);
+  photoCtl.hidden=!ps.length; photoCtl.textContent="";
+  if(!ps.length)return;
+  const lab=document.createElement("span");lab.textContent="Photo";photoCtl.appendChild(lab);
+  const mk=(txt,idx,title)=>{const b=document.createElement("button");b.type="button";b.textContent=txt;b.title=title;
+    b.setAttribute("aria-pressed",String(G.underlayIdx===idx));b.addEventListener("click",()=>{G.underlayIdx=idx;renderUnderlay();});photoCtl.appendChild(b);};
+  ps.forEach((p,i)=>mk(String(i+1),i,`Show photo ${i+1} under the table`)); mk("Off",-1,"Hide the photo");
+  const p=ps[G.underlayIdx];
+  if(p){const m=p.umargin;el("image",{href:p.underlay,x:-m,y:-m,width:G.L+2*m,height:G.W+2*m,preserveAspectRatio:"none",opacity:"0.92"},G.underlay);}
+}
+
 /* ---------- game tabs ---------- */
 const tabs=[...document.querySelectorAll('[role="tab"]')];
 function setGame(key,focusTab){
@@ -934,7 +1595,7 @@ function setGame(key,focusTab){
   clearBtn.textContent=G.clearLabel;
   document.getElementById("specs-snooker").hidden=G.key!=="snooker";
   document.getElementById("specs-pool").hidden=G.key!=="pool";
-  applyOrientation(); render();
+  G.notice=null; applyOrientation(); renderUnderlay(); render();
 }
 tabs.forEach(t=>{
   t.addEventListener("click",()=>setGame(t.dataset.game));
@@ -951,6 +1612,8 @@ function fromHash(record){
 }
 window.addEventListener("hashchange",()=>fromHash(true));
 
+if(/[?&]debug\b/.test(location.search))window.__board={game:()=>G,photos:()=>G.photoSet,setCorners:(i,c)=>setCorners(G.photoSet[i],G,c),
+  rectURL:i=>{const p=G.photoSet[i];const c=document.createElement("canvas");c.width=p.rect.w;c.height=p.rect.h;c.getContext("2d").putImageData(p.rect.img,0,0);return c.toDataURL("image/png");}};
 // Start on snooker at the break-off. A link ending #pool opens the pool table; a shared code opens its position.
 setGame("snooker");
 fromHash(false);
