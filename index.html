@@ -527,7 +527,7 @@ function applyOrientation(){
   const M=G.M, p=isPortrait();
   if(p){
     G.base={x:-M,y:-M,w:G.W+2*M,h:G.L+2*M};
-    G.world.setAttribute("transform",`matrix(0 -1 1 0 0 ${G.L})`); // baulk at the bottom
+    G.world.setAttribute("transform",`matrix(0 1 -1 0 ${G.W} 0)`); // baulk at the top, black end at the bottom
   }else{
     G.base={x:-M,y:-M,w:G.L+2*M,h:G.W+2*M};
     G.world.setAttribute("transform","");                          // baulk on the left
@@ -640,7 +640,7 @@ function showLoupe(b,cx,cy){
   const k=svg.getScreenCTM().a; // screen px per mm at the current zoom
   const mag=Math.max(1.6,Math.min(3.5,40/(2*b.r*k)));  // show the ball about 40px across
   const span=LOUPE/(k*mag);
-  const X=isPortrait()?b.y:b.x, Y=isPortrait()?G.L-b.x:b.y;
+  const X=isPortrait()?G.W-b.y:b.x, Y=isPortrait()?b.x:b.y;
   loupeSvg.setAttribute("viewBox",`${X-span/2} ${Y-span/2} ${span} ${span}`);
   let lx=cx, ly=cy-LOUPE/2-56;
   if(ly-LOUPE/2<6){ly=cy;lx=cx+(cx<innerWidth/2?1:-1)*(LOUPE/2+48);}
@@ -817,7 +817,7 @@ document.addEventListener("keydown",e=>{
   else if(e.key==="Escape"){G.selected=null;render();return;}
   else return;
   e.preventDefault();
-  let dx,dy; if(isPortrait()){dx=-sy*step;dy=sx*step;}else{dx=sx*step;dy=sy*step;}
+  let dx,dy; if(isPortrait()){dx=sy*step;dy=-sx*step;}else{dx=sx*step;dy=sy*step;}
   const p=resolve(b,b.x+dx,b.y+dy); if(p){pushHistory();b.x=p[0];b.y=p[1];render();}
 });
 
