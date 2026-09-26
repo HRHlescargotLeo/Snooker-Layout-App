@@ -36,6 +36,19 @@ A top-down, to-scale snooker table and English 8-ball pool table in a single web
 
 In tests on rendered photos with known ball positions, two end-on photos placed every ball to within about 1 cm. Real photos will be less tidy than that, so check the balls ringed in orange.
 
+### Photographing part of the table
+
+In a club it's often hard to get far enough back, or high enough, to fit the whole table in one photo. You can photograph just the part you need instead, as long as at least one pocket is in the shot.
+
+1. Take the photo from as high as you can, looking fairly steeply down, with a pocket in view. The app usually recognises a part-of-table photo by itself; if not, choose **Part of the table** at the top of the corner screen.
+2. Tap the pocket you photographed on the small table diagram. For a corner pocket, the app normally places the markers itself: a round marker where the cushion edges meet, and two square markers along those cushions. Drag them into place if needed.
+3. If a second pocket is in view, tap it as well. The baulk line, D and spots are picked up automatically when they're in view, and each one makes the result more accurate.
+4. Tap **Build layout**. Only balls inside the photographed area are updated; the rest of the board stays as it was. You can add photos of other areas and build again.
+
+**How it works.** The pocket and its cushions show where the photo is on the table. The camera's position comes from the lens's focal length (read from the photo), the right angle between the cushions, and the size of the balls in the shot, since every ball is the same known size. In tests on rendered close-up photos, balls were placed to within a few millimetres when the baulk line or D was in view, and to about 1 cm with just a pocket and a few balls.
+
+**Sides.** In snooker, the pockets and cushions are named after the green and yellow sides. The green side is on the left as seen from the baulk end and the yellow side on the right. The pockets are the green and yellow pockets (baulk corners), the green-side and yellow-side middles, and the green-side and yellow-side top pockets. The position readout gives each ball's distance from the baulk cushion and from the green cushion. In pool, left and right are as seen from the baulk end.
+
 ## Dimensions
 
 ### Snooker

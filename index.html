@@ -153,6 +153,16 @@ summary{cursor:pointer;font:600 13px/1.4 var(--display);letter-spacing:.1em;text
 .pp-prevwrap canvas{border-radius:6px;max-width:100%}
 .pp-sub{margin-top:4px}
 .pp-open{overflow:hidden}
+.pp-mode{display:flex!important;flex-direction:row!important;background:var(--tray);border-radius:8px;padding:3px;width:max-content;max-width:100%;gap:0!important}
+.pp-mode button{border:none;background:transparent;height:34px;padding:0 12px;font-size:13px;color:var(--muted);white-space:nowrap}
+.pp-mode button[aria-pressed="true"]{background:var(--btn);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.18)}
+.pp-tbl{position:relative;width:100%;max-width:420px;aspect-ratio:2/1;margin:2px 0 4px}
+.pp-tbl svg{display:block;width:100%;height:100%}
+.pp-tbl button{position:absolute;transform:translateY(-50%);height:28px;padding:0 8px;font:600 12px/1 var(--body);letter-spacing:0;text-transform:none;border-radius:999px;
+  background:#101512;color:#F2F5F1;border:2px solid #101512;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.4)}
+.pp-tbl button[aria-pressed="true"]{background:#FFE58A;color:#1A1204;border-color:#FFE58A}
+.pp-tbl button .n{display:inline-block;margin-right:5px;font-weight:700}
+.pp-tbl button.c-l{left:2%}.pp-tbl button.c-r{right:2%}.pp-tbl button.c-m{left:50%;transform:translate(-50%,-50%)}
 
 /* magnifier shown above the finger while dragging on a touch screen */
 .loupe{position:fixed;left:0;top:0;width:132px;height:132px;border-radius:50%;overflow:hidden;z-index:30;pointer-events:none;
@@ -273,6 +283,7 @@ summary{cursor:pointer;font:600 13px/1.4 var(--display);letter-spacing:.1em;text
           <li>Corner pockets: <b>89 mm</b> at the fall, jaws cut along the pocket diagonal</li>
           <li>Middle pockets: <b>108 mm</b> at the fall, rounded jaws flaring to the nose</li>
           <li>Cushion rubber: <b>50 mm</b> from nose to rail</li>
+          <li>Sides: the green side is on the left as seen from the baulk end, the yellow side on the right. Distances "from green cushion" are measured from the green-side cushion.</li>
         </ul>
         <ul class="specs" id="specs-pool" hidden>
           <li>Playing area: <b>1,829 × 914 mm</b> (6 ft × 3 ft, the 7 ft league table)</li>
@@ -283,6 +294,7 @@ summary{cursor:pointer;font:600 13px/1.4 var(--display);letter-spacing:.1em;text
           <li>Cue ball: starts in baulk, played from anywhere behind the baulk line</li>
           <li>Pockets: <b>81 mm</b> between the jaws (1.6 × ball diameter), rounded like snooker pockets</li>
           <li>Cushion rubber: <b>40 mm</b> from nose to rail</li>
+          <li>Left and right are as seen standing at the baulk end, looking up the table.</li>
         </ul>
         <p class="hint" style="margin-top:10px">Keyboard: with a ball selected, arrow keys nudge it 1&nbsp;mm (Shift for 10&nbsp;mm), Delete takes it off the table, Ctrl+Z undoes.</p>
       </details>
@@ -331,7 +343,20 @@ summary{cursor:pointer;font:600 13px/1.4 var(--display);letter-spacing:.1em;text
       <p class="hint" id="pp-msg" aria-live="polite"></p>
     </div>
     <div id="pp-edit" hidden>
-      <p class="hint">Drag each marker to the corner of the cloth, where the two cushions meet inside the pocket. The dashed yellow line<span class="snk-only"> and D</span> should land on the table's own baulk line<span class="snk-only"> and D</span>. If they're at the wrong end, tap Turn twice.</p>
+      <div class="pp-mode" role="group" aria-label="What the photo shows">
+        <button id="pp-m-whole" type="button" aria-pressed="true">Whole table</button>
+        <button id="pp-m-part" type="button" aria-pressed="false">Part of the table</button>
+      </div>
+      <div id="pp-part" hidden>
+        <p class="hint">Tap the pocket in the photo. If a second pocket is in view too, tap that as well: it makes the result much more accurate.</p>
+        <div class="pp-tbl" id="pp-tbl">
+          <svg viewBox="0 0 300 150" aria-hidden="true"><rect x="1" y="1" width="298" height="148" rx="10" fill="#5A301C"/><rect x="14" y="14" width="272" height="122" fill="#1B8540"/>
+            <line x1="70" y1="14" x2="70" y2="136" stroke="#E9F3EA" stroke-opacity=".7"/><path id="pp-tbl-d" d="M70 50 A25 25 0 0 0 70 100" fill="none" stroke="#E9F3EA" stroke-opacity=".7"/>
+            <text x="40" y="80" fill="#E9F3EA" fill-opacity=".8" font-size="10" text-anchor="middle" font-family="system-ui">Baulk</text></svg>
+        </div>
+        <p class="hint" id="pp-part-msg"></p>
+      </div>
+      <p class="hint" id="pp-whole-hint">Drag each marker to the corner of the cloth, where the two cushions meet inside the pocket. The dashed yellow line<span class="snk-only"> and D</span> should land on the table's own baulk line<span class="snk-only"> and D</span>. If they're at the wrong end, tap Turn twice.</p>
       <div class="pp-editor"><canvas id="pp-canvas" aria-label="Photo with corner markers"></canvas></div>
       <p class="label pp-sub">Straightened view</p>
       <p class="hint">The dashed lines should sit on the table's own baulk line<span class="snk-only">, D</span> and cushions.</p>
@@ -340,6 +365,7 @@ summary{cursor:pointer;font:600 13px/1.4 var(--display);letter-spacing:.1em;text
       <div class="pp-actions">
         <button id="pp-turn" type="button">Turn ↻</button>
         <button id="pp-auto" type="button">Find corners again</button>
+        <button id="pp-clear" type="button" hidden>Clear pockets</button>
         <button id="pp-done" type="button" class="primary">Done</button>
       </div>
     </div>
@@ -902,7 +928,7 @@ function renderStatus(){
     statusEl.innerHTML=`<span>${G.summary(G.balls)}</span><span class="dim">Drag a ball, or tap it and then tap where it goes</span>`;
     return;
   }
-  statusEl.innerHTML=`<b>${G.colours[b.type].name}</b><span><span class="dim">From baulk</span> ${fmt(b.x)} mm</span><span><span class="dim">From left</span> ${fmt(b.y)} mm</span><span class="tag">${contact(b)}</span>${b.flag?'<span class="tag warn">Check this ball</span>':""}`;
+  statusEl.innerHTML=`<b>${G.colours[b.type].name}</b><span><span class="dim">From baulk</span> ${fmt(b.x)} mm</span><span><span class="dim">From ${G.key==="snooker"?"green":"left"} cushion</span> ${fmt(b.y)} mm</span><span class="tag">${contact(b)}</span>${b.flag?'<span class="tag warn">Check this ball</span>':""}`;
 }
 
 /* ---------- controls ---------- */
@@ -1015,7 +1041,6 @@ if(canLink&&!standalone){
       voted on, and anything doubtful is marked for the user to check.
    ===================================================================== */
 const PH_MAX=2400;                                   // longest side of each photo's working copy, px
-const CORNER_LABELS=["Baulk left","Baulk right","Top right","Top left"];
 const tableCorners=g=>[[0,0],[0,g.W],[g.L,g.W],[g.L,0]];
 const objR=g=>g.balls.find(b=>b.type!=="white").r;
 
@@ -1111,6 +1136,7 @@ function loadPhoto(file){
 function setCorners(ph,g,corners){
   ph.corners=corners.map(p=>p.slice());
   ph.H=homography(tableCorners(g),ph.corners);
+  if(ph.H){const w=ph.H[6]*g.L/2+ph.H[7]*g.W/2+ph.H[8];if(w<0)ph.H=ph.H.map(v=>-v);}
   ph.pose=ph.H?estimatePose(ph.H,ph.w,ph.h):null;
   ph.rect=null;
 }
@@ -1123,7 +1149,7 @@ function rectify(ph,g,scale,margin){
     for(let i=0;i<outW;i++){
       const x=i*scale-margin;
       const w=H[6]*x+H[7]*y+H[8], u=(H[0]*x+H[1]*y+H[2])/w-0.5, v=(H[3]*x+H[4]*y+H[5])/w-0.5, o=(j*outW+i)*4;
-      if(!(u>=0&&v>=0&&u<sw-1&&v<sh-1)){continue;}
+      if(!(w>0&&u>=0&&v>=0&&u<sw-1&&v<sh-1)){continue;}
       const x0=u|0,y0=v|0,fx=u-x0,fy=v-y0,p=(y0*sw+x0)*4,q=p+sw*4;
       for(let c=0;c<3;c++)d[o+c]=(src[p+c]*(1-fx)+src[p+4+c]*fx)*(1-fy)+(src[q+c]*(1-fx)+src[q+4+c]*fx)*fy;
       d[o+3]=255;
@@ -1452,13 +1478,15 @@ function assignTypes(cl,g,nv){
   }
   return out;
 }
-function relaxBalls(g){
+function relaxBalls(g,fixed){
+  fixed=fixed||[];
   const on=g.balls.filter(b=>b.on);
   for(let it=0;it<40;it++){let moved=false;
     for(let i=0;i<on.length;i++)for(let j=i+1;j<on.length;j++){const a=on[i],b=on[j];
       let dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy);const need=a.r+b.r+0.2;
-      if(d<need){if(d<1e-6){dx=1;dy=0;d=1;}const push=(need-d)/2;a.x-=dx/d*push;a.y-=dy/d*push;b.x+=dx/d*push;b.y+=dy/d*push;moved=true;}}
-    for(const b of on){b.x=Math.max(b.r,Math.min(g.L-b.r,b.x));b.y=Math.max(b.r,Math.min(g.W-b.r,b.y));}
+      if(d<need){if(d<1e-6){dx=1;dy=0;d=1;}const fa=fixed.includes(a),fb=fixed.includes(b);if(fa&&fb)continue;
+        const push=(need-d)/(fa||fb?1:2);if(!fa){a.x-=dx/d*push;a.y-=dy/d*push;}if(!fb){b.x+=dx/d*push;b.y+=dy/d*push;}moved=true;}}
+    for(const b of on){if(fixed.includes(b))continue;b.x=Math.max(b.r,Math.min(g.L-b.r,b.x));b.y=Math.max(b.r,Math.min(g.W-b.r,b.y));}
     if(!moved)break;}
 }
 // Photos from the same phone share a focal length. Pool the per-photo estimates with a typical
@@ -1491,17 +1519,22 @@ function agreement(a,b,tol){
   return m/Math.min(a.length,b.length);
 }
 const rot2=c=>[c[2],c[3],c[0],c[1]];
+const frontH=(H,g)=>{if(!H)return H;const w=H[6]*g.L/2+H[7]*g.W/2+H[8];return w<0?H.map(v=>-v):H;};
 function buildFromPhotos(g){
   const photos=g.photoSet.filter(p=>p.H);
-  shareFocal(photos);
-  const f=photos.map(p=>p.pose.f/Math.hypot(p.w,p.h));
-  // Try each photo both ways round (unless the user turned it themselves). Choose the combination whose
-  // balls line up best between photos; the table's baulk line and D decide which way round the whole set goes.
+  const whole=photos.filter(p=>p.mode!=="part"), part=photos.filter(p=>p.mode==="part");
+  shareFocal(whole);
+  // part-of-table photos: use the lens from a whole-table photo or EXIF if the solve didn't have it
   const R0=objR(g);
-  const variants=photos.map((p,i)=>{
+  // Try each whole-table photo both ways round (unless the user turned it themselves). Choose the combination whose
+  // balls line up best between photos; the table's baulk line and D decide which way round the whole set goes.
+  // Part-of-table photos already know which pocket they show, so they are used as they are.
+  const variants=photos.map(p=>{
+    if(p.mode==="part"){const v={...p};v.dets=detectBalls(v,g);whiteBalance(v.dets,g);v.baulk=0;return [v];}
+    const fr=p.pose.f/Math.hypot(p.w,p.h);
     const opts=p.orientLocked?[p.corners]:[p.corners,rot2(p.corners)];
-    return opts.map(c=>{const v={...p,corners:c.map(q=>q.slice())};v.H=homography(tableCorners(g),v.corners);
-      v.pose=estimatePose(v.H,p.w,p.h,f[i]*Math.hypot(p.w,p.h));v.dets=detectBalls(v,g);whiteBalance(v.dets,g);
+    return opts.map(c=>{const v={...p,corners:c.map(q=>q.slice())};v.H=frontH(homography(tableCorners(g),v.corners),g);
+      v.pose=estimatePose(v.H,p.w,p.h,fr*Math.hypot(p.w,p.h));v.dets=detectBalls(v,g);whiteBalance(v.dets,g);
       v.baulk=baulkScore(p,g,v.H);return v;});
   });
   // Turning every photo round together keeps them agreeing with each other, so group those pairs:
@@ -1510,7 +1543,12 @@ function buildFromPhotos(g){
   const groups=new Map();
   for(const combo of combos){
     let ag=0,np=0;
-    for(let i=0;i<combo.length;i++)for(let j=i+1;j<combo.length;j++){ag+=agreement(combo[i].v.dets,combo[j].v.dets,2*R0);np++;}
+    // only compare photos where they overlap (two photos of different corners share nothing)
+    const sees=(v,d)=>v.mode!=="part"||photoCovers(v,d.x,d.y);
+    for(let i=0;i<combo.length;i++)for(let j=i+1;j<combo.length;j++){
+      const A=combo[i].v,B=combo[j].v,da=A.dets.filter(d=>sees(B,d)),db=B.dets.filter(d=>sees(A,d));
+      if(Math.min(da.length,db.length)<2)continue;
+      ag+=agreement(da,db,2*R0);np++;}
     const key=combo.map(c=>c.oi^combo[0].oi).join("");
     const item={combo:combo.map(c=>c.v),a:np?ag/np:1,b:combo.reduce((s,c)=>s+c.v.baulk,0)};
     if(!groups.has(key))groups.set(key,[]);groups.get(key).push(item);
@@ -1520,20 +1558,315 @@ function buildFromPhotos(g){
   const best=bestG.items.sort((x,y)=>y.b-x.b)[0]; best.a=bestG.a;
   g._orient=[...groups.values()].flat().map(i=>({a:+i.a.toFixed(2),b:+i.b.toFixed(3)}));
   const turned=[];
-  best.combo.forEach((v,i)=>{const p=photos[i];if(v.corners[0][0]!==p.corners[0][0]||v.corners[0][1]!==p.corners[0][1])turned.push(g.photoSet.indexOf(p)+1);p.corners=v.corners;p.H=v.H;p.pose=v.pose;p.dets=v.dets;p.rect=v.rect;p.baulk=v.baulk;});
-  const endsUnsure=photos.length===1&&!photos[0].orientLocked&&Math.abs(variants[0][0].baulk-variants[0][1].baulk)<0.04;
-  const cl=fuseDetections(photos,g), found=assignTypes(cl,g,photos.length); g._cl=cl;
+  best.combo.forEach((v,i)=>{const p=photos[i];
+    if(p.mode!=="part"&&(v.corners[0][0]!==p.corners[0][0]||v.corners[0][1]!==p.corners[0][1]))turned.push(g.photoSet.indexOf(p)+1);
+    if(p.mode!=="part"){p.corners=v.corners;p.H=v.H;p.pose=v.pose;}
+    p.dets=v.dets;p.rect=v.rect;p.baulk=v.baulk;});
+  const w0=whole[0], wv=w0?variants[photos.indexOf(w0)]:null;
+  const endsUnsure=photos.length===1&&whole.length===1&&!w0.orientLocked&&wv.length>1&&Math.abs(wv[0].baulk-wv[1].baulk)<0.04;
+  // Which part of the table do these photos show? A whole-table photo covers everything; part-of-table
+  // photos only update balls inside what they show, and leave the rest of the board alone.
+  const covers=(x,y)=>whole.length>0||part.some(p=>photoCovers(p,x,y));
+  const keep=g.balls.filter(b=>b.on&&!covers(b.x,b.y));
+  const g2={...g,balls:g.balls.filter(b=>!keep.includes(b))};          // capacity: only balls not kept
+  // a partial photo's detections near the edge of its view are less trustworthy; drop any outside its view
+  for(const p of part)p.dets=p.dets.filter(d=>photoCovers(p,d.x,d.y));
+  const cl=fuseDetections(photos,g), found=assignTypes(cl,g2,photos.length); g._cl=cl;
   pushHistory();
   const pool={};found.forEach(f=>(pool[f.type]=pool[f.type]||[]).push(f));
   let placed=0,flagged=0;
-  g.balls.forEach(b=>{const f=(pool[b.type]||[]).shift();
+  g.balls.forEach(b=>{if(keep.includes(b))return;const f=(pool[b.type]||[]).shift();
     if(f){b.on=true;b.x=f.x;b.y=f.y;b.flag=f.flag;placed++;if(f.flag)flagged++;}else{b.on=false;b.flag=false;}});
-  relaxBalls(g);
+  // keep balls outside the photographed area where they are; only move the new ones apart if they overlap
+  relaxBalls(g,keep);
   // photo underlays, straightened to the table
   photos.forEach(p=>{const c=document.createElement("canvas");c.width=p.rect.w;c.height=p.rect.h;
-    c.getContext("2d").putImageData(p.rect.img,0,0);p.underlay=c.toDataURL("image/jpeg",0.82);p.umargin=p.rect.margin;});
+    // a part-of-table photo only covers some of the table: keep the rest see-through
+    c.getContext("2d").putImageData(p.rect.img,0,0);p.underlay=p.mode==="part"?c.toDataURL("image/png"):c.toDataURL("image/jpeg",0.82);p.umargin=p.rect.margin;});
   g.underlayIdx=photos.length?0:-1;
-  return {placed,flagged,missing:g.balls.length-placed,views:photos.length,disagree:photos.length>1&&best.a<0.35,endsUnsure,turned};
+  const noLens=part.some(p=>!p.f35), weak=part.some(p=>p.pose&&(p.pose.nballs<2&&(p.marks||[]).filter(m=>m.p).length<2));
+  return {placed,flagged,missing:whole.length?g.balls.length-placed:0,views:photos.length,disagree:photos.length>1&&best.a<0.35,endsUnsure,turned,
+    partOnly:!whole.length,kept:keep.length,noLens,weak};
+}
+
+/* =====================================================================
+   Part of the table: a photo that shows one or two pockets rather than the whole table.
+   The camera's position is solved from what is known for certain:
+   - where each marked pocket is on the table, and the cushion lines running out of it;
+   - the lens's field of view (from the photo's EXIF data, or a typical phone lens);
+   - the size of every ball in the shot (all balls are the same, known size).
+   ===================================================================== */
+const sideNames=g=>g.key==="snooker"?{l:"Green",r:"Yellow"}:{l:"Left",r:"Right"};
+function pocketDefs(g){
+  const {L,W}=g, n=sideNames(g), snk=g.key==="snooker";
+  const nm=snk?{gb:"Green pocket",yb:"Yellow pocket",gm:"Green-side middle",ym:"Yellow-side middle",gt:"Green-side top",yt:"Yellow-side top"}
+             :{gb:"Baulk left",yb:"Baulk right",gm:"Middle left",ym:"Middle right",gt:"Top left",yt:"Top right"};
+  const side=s=>snk?`${s}-side cushion`:`${s} cushion`;
+  return [
+    {id:"gb",name:nm.gb,P:[0,0],cush:[{d:[0,1],label:"Baulk cushion"},{d:[1,0],label:side(n.l)}]},
+    {id:"gm",name:nm.gm,P:[L/2,0],cush:[{d:[-1,0],label:"Towards baulk"},{d:[1,0],label:"Towards top"}]},
+    {id:"gt",name:nm.gt,P:[L,0],cush:[{d:[0,1],label:"Top cushion"},{d:[-1,0],label:side(n.l)}]},
+    {id:"yb",name:nm.yb,P:[0,W],cush:[{d:[0,-1],label:"Baulk cushion"},{d:[1,0],label:side(n.r)}]},
+    {id:"ym",name:nm.ym,P:[L/2,W],cush:[{d:[-1,0],label:"Towards baulk"},{d:[1,0],label:"Towards top"}]},
+    {id:"yt",name:nm.yt,P:[L,W],cush:[{d:[0,-1],label:"Top cushion"},{d:[-1,0],label:side(n.r)}]}];
+}
+const cornerLabels=g=>{const d=pocketDefs(g),by=id=>d.find(p=>p.id===id).name;return [by("gb"),by("yb"),by("yt"),by("gt")];};
+
+/* ---------- looking at the raw photo: cloth, balls, and a guess at the pocket corner ---------- */
+function rawAnalysis(ph){
+  if(ph.raw)return ph.raw;
+  const S=Math.min(1,2000/Math.max(ph.w,ph.h)), w=Math.round(ph.w*S), h=Math.round(ph.h*S);
+  let d;
+  if(S===1)d=ph.data.data;else{const cv=document.createElement("canvas");cv.width=w;cv.height=h;
+    const cx=cv.getContext("2d",{willReadFrequently:true});cx.drawImage(ph.canvas,0,0,w,h);d=cx.getImageData(0,0,w,h).data;}
+  const N=w*h, H=new Float32Array(N), Sa=new Float32Array(N), V=new Float32Array(N);
+  const hist=new Float32Array(36);
+  for(let i=0;i<N;i++){const [hh,s,v]=rgb2hsv(d[i*4],d[i*4+1],d[i*4+2]);H[i]=hh;Sa[i]=s;V[i]=v;
+    const x=i%w,y=(i/w)|0;if(s>0.3&&v>0.15&&x>w*0.1&&x<w*0.9&&y>h*0.1&&y<h*0.9)hist[Math.floor(hh/10)%36]+=1;}
+  let hb=0;for(let k=1;k<36;k++)if(hist[k]>hist[hb])hb=k;
+  const h0=hb*10+5;
+  const cloth=new Uint8Array(N);for(let i=0;i<N;i++)cloth[i]=(hueDiff(H[i],h0)<26&&Sa[i]>0.2&&V[i]>0.08)?1:0;
+  // largest cloth region
+  const lab=new Int32Array(N);let best=0,bestN=0,cur=0;const st=[];
+  for(let i=0;i<N;i++){if(!cloth[i]||lab[i])continue;cur++;let n=0;st.push(i);lab[i]=cur;
+    while(st.length){const p=st.pop();n++;const x=p%w;
+      for(const q of [p-1,p+1,p-w,p+w]){if(q<0||q>=N||(q===p-1&&x===0)||(q===p+1&&x===w-1))continue;if(cloth[q]&&!lab[q]){lab[q]=cur;st.push(q);}}}
+    if(n>bestN){bestN=n;best=cur;}}
+  const inCloth=new Uint8Array(N);for(let i=0;i<N;i++)inCloth[i]=lab[i]===best?1:0;
+  // how much of each edge of the photo is cloth: a whole-table photo has the table well inside the frame
+  let bt=0,bb=0,bl=0,br=0;for(let x=0;x<w;x++){bt+=inCloth[x];bb+=inCloth[(h-1)*w+x];}for(let y=0;y<h;y++){bl+=inCloth[y*w];br+=inCloth[y*w+w-1];}
+  const border=Math.max(bt/w,bb/w,bl/h,br/h);
+  // holes in the cloth (anything not cloth that can't be reached from the photo's edge without crossing cloth) are balls
+  const outside=new Uint8Array(N);
+  for(let x=0;x<w;x++){for(const y of [0,h-1]){const i=y*w+x;if(!inCloth[i]&&!outside[i]){outside[i]=1;st.push(i);}}}
+  for(let y=0;y<h;y++){for(const x of [0,w-1]){const i=y*w+x;if(!inCloth[i]&&!outside[i]){outside[i]=1;st.push(i);}}}
+  while(st.length){const p=st.pop();const x=p%w;
+    for(const q of [p-1,p+1,p-w,p+w]){if(q<0||q>=N||(q===p-1&&x===0)||(q===p+1&&x===w-1))continue;if(!inCloth[q]&&!outside[q]){outside[q]=1;st.push(q);}}}
+  const blobs=[];const seen=new Uint8Array(N);
+  for(let i=0;i<N;i++){if(inCloth[i]||outside[i]||seen[i])continue;
+    const pix=[];st.push(i);seen[i]=1;
+    while(st.length){const p=st.pop();pix.push(p);const x=p%w;
+      for(const q of [p-1,p+1,p-w,p+w]){if(q<0||q>=N||(q===p-1&&x===0)||(q===p+1&&x===w-1))continue;if(!inCloth[q]&&!outside[q]&&!seen[q]){seen[q]=1;st.push(q);}}}
+    if(pix.length<25||pix.length>N*0.02)continue;
+    let mx=0,my=0;for(const p of pix){mx+=p%w;my+=(p/w)|0;}mx/=pix.length;my/=pix.length;
+    let sxx=0,syy=0,sxy=0;for(const p of pix){const dx=p%w-mx,dy=((p/w)|0)-my;sxx+=dx*dx;syy+=dy*dy;sxy+=dx*dy;}
+    sxx/=pix.length;syy/=pix.length;sxy/=pix.length;
+    const tr=sxx+syy,det=sxx*syy-sxy*sxy,disc=Math.sqrt(Math.max(0,tr*tr/4-det));
+    const a=2*Math.sqrt(tr/2+disc), b=2*Math.sqrt(Math.max(0,tr/2-disc));
+    if(b<3||a/b>3.2)continue;
+    const fill=pix.length/(Math.PI*a*b); if(fill<0.72||fill>1.25)continue;   // round, solid patches only (not merged balls)
+    // the outline picks up about half a pixel of blur all round; take it off before using the size
+    blobs.push({u:(mx+0.5)/S,v:(my+0.5)/S,minor:(b-0.6)/S,major:(a-0.6)/S});
+  }
+  // a guess at a corner pocket: the sharpest corner of the cloth's outline that isn't on the photo's edge
+  const pts=[];for(let i=0;i<N;i++)if(inCloth[i])pts.push([i%w,(i/w)|0]);
+  let guess=null;
+  if(pts.length>N*0.05){
+    const hull=convexHull(pts), onEdge=p=>p[0]<3||p[1]<3||p[0]>w-4||p[1]>h-4;
+    // simplify the outline to its long straight runs
+    const edges=[];for(let i=0;i<hull.length;i++){const A=hull[i],B=hull[(i+1)%hull.length];if(onEdge(A)&&onEdge(B))continue;
+      const len=Math.hypot(B[0]-A[0],B[1]-A[1]);if(len>Math.min(w,h)*0.12)edges.push({A,B,len});}
+    let bestC=null;
+    for(let i=0;i<edges.length;i++)for(let j=0;j<edges.length;j++){if(i===j)continue;
+      const e1=edges[i],e2=edges[j];
+      const d1=[e1.B[0]-e1.A[0],e1.B[1]-e1.A[1]],d2=[e2.B[0]-e2.A[0],e2.B[1]-e2.A[1]];
+      const den=d1[0]*d2[1]-d1[1]*d2[0];if(Math.abs(den)<1e-6)continue;
+      const t=((e2.A[0]-e1.A[0])*d2[1]-(e2.A[1]-e1.A[1])*d2[0])/den, P=[e1.A[0]+d1[0]*t,e1.A[1]+d1[1]*t];
+      const ang=Math.acos(Math.abs(d1[0]*d2[0]+d1[1]*d2[1])/(e1.len*e2.len));
+      if(ang<0.35)continue;
+      const near=Math.min(Math.hypot(P[0]-e1.B[0],P[1]-e1.B[1]),Math.hypot(P[0]-e1.A[0],P[1]-e1.A[1]))+Math.min(Math.hypot(P[0]-e2.A[0],P[1]-e2.A[1]),Math.hypot(P[0]-e2.B[0],P[1]-e2.B[1]));
+      const score=e1.len+e2.len-3*near;
+      if(!bestC||score>bestC.score){
+        const far=(e,P)=>{const a=Math.hypot(e.A[0]-P[0],e.A[1]-P[1]),b=Math.hypot(e.B[0]-P[0],e.B[1]-P[1]);return a>b?e.A:e.B;};
+        bestC={score,P,h1:far(e1,P),h2:far(e2,P)};}
+    }
+    if(bestC){const sc=p=>[(p[0]+0.5)/S,(p[1]+0.5)/S];
+      const P=sc(bestC.P),f=(q)=>{const Q=sc(q);return [P[0]+(Q[0]-P[0])*0.75,P[1]+(Q[1]-P[1])*0.75];};
+      guess={p:P,h:[f(bestC.h1),f(bestC.h2)]};}
+  }
+  ph.raw={blobs,guess,hue:h0,border};
+  return ph.raw;
+}
+
+/* ---------- camera pose from marks + balls ---------- */
+function rotvec2R(w){const t=Math.hypot(w[0],w[1],w[2]);if(t<1e-12)return [1,0,0,0,1,0,0,0,1];
+  const k=w.map(v=>v/t),c=Math.cos(t),s=Math.sin(t),C=1-c,[x,y,z]=k;
+  return [c+x*x*C, x*y*C-z*s, x*z*C+y*s, y*x*C+z*s, c+y*y*C, y*z*C-x*s, z*x*C-y*s, z*y*C+x*s, c+z*z*C];}
+function R2rotvec(R){const tr=R[0]+R[4]+R[8],t=Math.acos(Math.max(-1,Math.min(1,(tr-1)/2)));
+  if(t<1e-9)return [0,0,0];
+  if(Math.PI-t<1e-4){ // near 180 degrees
+    const x=Math.sqrt(Math.max(0,(R[0]+1)/2)),y=Math.sqrt(Math.max(0,(R[4]+1)/2))*(R[1]>=0?1:-1),z=Math.sqrt(Math.max(0,(R[8]+1)/2))*(R[2]>=0?1:-1);
+    return [x*t,y*t,z*t];}
+  const f=t/(2*Math.sin(t));return [(R[7]-R[5])*f,(R[2]-R[6])*f,(R[3]-R[1])*f];}
+function lookAt(C,T,roll){
+  const z=[T[0]-C[0],T[1]-C[1],T[2]-C[2]],zn=Math.hypot(...z);z.forEach((v,i)=>z[i]=v/zn);
+  let down=[0,0,1];if(Math.abs(dot3(down,z))>0.98)down=[1,0,0];
+  let y=down.map((v,i)=>v-dot3(down,z)*z[i]);const yn=Math.hypot(...y);y=y.map(v=>v/yn);
+  let x=cross3(y,z);
+  const c=Math.cos(roll),s=Math.sin(roll);
+  const x2=x.map((v,i)=>c*v+s*y[i]), y2=y.map((v,i)=>-s*x[i]+c*v);
+  return [...x2,...y2,...z];
+}
+// World frame: table x and y, z = x cross y (points down into the table). The camera sits at negative z.
+function project(R,C,f,cx,cy,X){
+  const d=[X[0]-C[0],X[1]-C[1],X[2]-C[2]];
+  const xc=R[0]*d[0]+R[1]*d[1]+R[2]*d[2], yc=R[3]*d[0]+R[4]*d[1]+R[5]*d[2], zc=R[6]*d[0]+R[7]*d[1]+R[8]*d[2];
+  if(zc<1)return null; return [cx+f*xc/zc, cy+f*yc/zc];
+}
+function lmSolve(p0,res,iters){
+  let p=p0.slice(),r=res(p),cost=r.reduce((s,v)=>s+v*v,0),lam=1e-3;
+  const eps=[1e-5,1e-5,1e-5,0.5,0.5,0.5];
+  for(let it=0;it<iters;it++){
+    const J=[];for(let k=0;k<6;k++){const q=p.slice();q[k]+=eps[k];const r2=res(q);J.push(r2.map((v,i)=>(v-r[i])/eps[k]));}
+    const A=[...Array(6)].map((_,a)=>[...Array(6)].map((_,b)=>{let s=0;for(let i=0;i<r.length;i++)s+=J[a][i]*J[b][i];return s;}));
+    const gv=[...Array(6)].map((_,a)=>{let s=0;for(let i=0;i<r.length;i++)s+=J[a][i]*r[i];return -s;});
+    let improved=false;
+    for(let tries=0;tries<6;tries++){
+      const M=A.map((row,a)=>row.map((v,b)=>a===b?v*(1+lam)+1e-9:v));
+      const dlt=solveLin(M,gv); if(!dlt){lam*=10;continue;}
+      const q=p.map((v,k)=>v+dlt[k]), rq=res(q), cq=rq.reduce((s,v)=>s+v*v,0);
+      if(cq<cost){const rel=(cost-cq)/(cost+1e-12);p=q;r=rq;cost=cq;lam=Math.max(1e-7,lam/3);improved=true;if(rel<1e-7)it=iters;break;}
+      lam*=4;
+    }
+    if(!improved)break;
+  }
+  return {p,cost};
+}
+function solvePart(ph,g){
+  const defs=pocketDefs(g), marks=(ph.marks||[]).filter(m=>m.p);
+  if(!marks.length){ph.H=null;ph.pose=null;return null;}
+  const raw=rawAnalysis(ph), R0=objR(g);
+  const f=(ph.f35?ph.f35/43.27:0.57)*Math.hypot(ph.w,ph.h), cx=ph.w/2, cy=ph.h/2;
+  const obs=[];
+  for(const m of marks){const def=defs.find(d=>d.id===m.pocket);
+    const off=m.outer?def.cush.reduce((a,c)=>[a[0]-g.C*c.d[0],a[1]-g.C*c.d[1]],[0,0]):[0,0];
+    const X=[def.P[0]+off[0],def.P[1]+off[1],0];
+    obs.push({type:"pt",X,p:m.p});
+    def.cush.forEach((c,i)=>{if(m.h[i])obs.push({type:"line",X,d:c.d,p:m.h[i]});});}
+  // A ball's outline is an ellipse; across the direction to the photo's centre it is f*tan(a)/cos(b) wide,
+  // where a is the half-angle the ball fills and b how far off-centre it is. That gives its distance.
+  let balls=raw.blobs.map(b=>{const cosb=f/Math.hypot(f,b.u-cx,b.v-cy);const ta=b.minor*cosb/f;
+    return {u:b.u,v:b.v,D:R0*Math.sqrt(1+1/(ta*ta))};});
+  let markObs=[];
+  const res=(q,useBalls)=>{
+    const R=rotvec2R(q.slice(0,3)),C=q.slice(3), out=[];
+    for(const o of obs){
+      const a=project(R,C,f,cx,cy,o.X);
+      if(o.type==="pt"){if(!a){out.push(1e4,1e4);continue;}out.push(a[0]-o.p[0],a[1]-o.p[1]);}
+      else{const b=project(R,C,f,cx,cy,[o.X[0]+o.d[0]*600,o.X[1]+o.d[1]*600,0]);if(!a||!b){out.push(1e4);continue;}
+        const L=Math.hypot(b[0]-a[0],b[1]-a[1])||1;out.push(((o.p[0]-a[0])*(b[1]-a[1])-(o.p[1]-a[1])*(b[0]-a[0]))/L);
+        // the handle must also lie on the correct side of the pocket along the cushion
+        const along=((o.p[0]-a[0])*(b[0]-a[0])+(o.p[1]-a[1])*(b[1]-a[1]))/L; out.push(along<0?along:0);}
+    }
+    for(const o of markObs){ // table markings found in the photo (baulk line, D)
+      const a=project(R,C,f,cx,cy,o.X), b=project(R,C,f,cx,cy,[o.X[0]+o.n[0]*20,o.X[1]+o.n[1]*20,0]);
+      if(!a||!b){out.push(0);continue;}const nl=Math.hypot(b[0]-a[0],b[1]-a[1])||1;
+      const e=((o.q[0]-a[0])*(b[0]-a[0])+(o.q[1]-a[1])*(b[1]-a[1]))/nl, c=2;
+      out.push(Math.sign(e)*c*Math.sqrt(Math.log(1+(e/c)**2)));
+    }
+    if(useBalls)for(const bl of balls){
+      const dc=[(bl.u-cx)/f,(bl.v-cy)/f,1];
+      const dw=[R[0]*dc[0]+R[3]*dc[1]+R[6]*dc[2],R[1]*dc[0]+R[4]*dc[1]+R[7]*dc[2],R[2]*dc[0]+R[5]*dc[1]+R[8]*dc[2]];
+      const t=(-R0-C[2])/dw[2]; if(!(t>0)){out.push(50);continue;}
+      const D=t*Math.hypot(...dw), e=(D-bl.D)/bl.D*80, c=2.5;
+      out.push(Math.sign(e)*c*Math.sqrt(Math.log(1+(e/c)**2)));   // a ball that disagrees a lot counts for less
+    }
+    if(C[2]>-150)out.push((C[2]+150)*0.5);            // camera must be above the cloth
+    return out;
+  };
+  if(ph._truth){const q=[...R2rotvec(lookAt(ph._truth.C,ph._truth.T,0)),...ph._truth.C];const r=res(q,true);
+    console.log("TRUTH residuals",JSON.stringify(r.map(v=>+v.toFixed(2))),"balls",JSON.stringify(balls.map(b=>({u:Math.round(b.u),v:Math.round(b.v),D:Math.round(b.D)}))));}
+  // starting guesses all round the pocket, then refine the best few
+  const m0=marks[0], d0=defs.find(d=>d.id===m0.pocket);
+  const inward=d0.id.endsWith("m")?[0,d0.P[1]===0?1:-1]:[d0.cush[0].d[0]+d0.cush[1].d[0],d0.cush[0].d[1]+d0.cush[1].d[1]];
+  const il=Math.hypot(...inward), T=[d0.P[0]+inward[0]/il*350,d0.P[1]+inward[1]/il*350,0];
+  const dist=balls.length?balls.map(b=>b.D).sort((a,b)=>a-b)[balls.length>>1]:1400;
+  const starts=[];
+  for(const el of [85,68,52,38])for(let az=0;az<360;az+=30)for(const roll of [0,Math.PI/2,Math.PI,-Math.PI/2]){
+    const e=el*Math.PI/180,a=az*Math.PI/180;
+    const C=[T[0]+dist*Math.cos(e)*Math.cos(a),T[1]+dist*Math.cos(e)*Math.sin(a),-dist*Math.sin(e)];
+    const q=[...R2rotvec(lookAt(C,T,roll)),...C];
+    starts.push(lmSolve(q,x=>res(x,true),6));
+  }
+  starts.sort((a,b)=>a.cost-b.cost);
+  let best=null;
+  for(const s of starts.slice(0,6)){const r=lmSolve(s.p,x=>res(x,true),60);if(!best||r.cost<best.cost)best=r;}
+  // drop balls that disagree badly (merged patches, chalk, a hand) and solve again
+  if(balls.length>2){
+    const R=rotvec2R(best.p.slice(0,3)),C=best.p.slice(3);
+    const errs=balls.map(bl=>{const dc=[(bl.u-cx)/f,(bl.v-cy)/f,1];
+      const dw=[R[0]*dc[0]+R[3]*dc[1]+R[6]*dc[2],R[1]*dc[0]+R[4]*dc[1]+R[7]*dc[2],R[2]*dc[0]+R[5]*dc[1]+R[8]*dc[2]];
+      const t=(-R0-C[2])/dw[2];return Math.abs(t*Math.hypot(...dw)-bl.D)/bl.D;});
+    const medE=errs.slice().sort((a,b)=>a-b)[errs.length>>1];
+    balls=balls.filter((b,i)=>errs[i]<=Math.max(0.05,3*medE));
+    best=lmSolve(best.p,x=>res(x,true),60);
+  }
+  // If the baulk line or D is in view, find it in the photo and use it to tighten the solution.
+  for(let pass=0;pass<2;pass++){
+    const Rb=rotvec2R(best.p.slice(0,3)),Cb=best.p.slice(3);
+    markObs=findMarkings(ph,g,Rb,Cb,f,cx,cy);
+    if(markObs.length<6)break;
+    best=lmSolve(best.p,x=>res(x,true),60);
+  }
+  ph._marks=markObs.length;
+  const R=rotvec2R(best.p.slice(0,3)),C=best.p.slice(3);
+  // table-to-photo mapping: K [r1 r2 t] with t = -R C (w = depth, positive in front of the camera)
+  const t=[-(R[0]*C[0]+R[1]*C[1]+R[2]*C[2]),-(R[3]*C[0]+R[4]*C[1]+R[5]*C[2]),-(R[6]*C[0]+R[7]*C[1]+R[8]*C[2])];
+  const M=[R[0],R[1],t[0],R[3],R[4],t[1],R[6],R[7],t[2]];
+  ph.H=[f*M[0]+cx*M[6],f*M[1]+cx*M[7],f*M[2]+cx*M[8], f*M[3]+cy*M[6],f*M[4]+cy*M[7],f*M[5]+cy*M[8], M[6],M[7],M[8]];
+  const rms=Math.sqrt(best.cost/Math.max(1,obs.length*2+balls.length));
+  for(const m of marks){if(!m.outer)continue;const def=defs.find(d=>d.id===m.pocket);
+    const pp=project(R,C,f,cx,cy,[def.P[0],def.P[1],0]); if(!pp)continue;
+    const inImg=q=>q&&q[0]>5&&q[1]>5&&q[0]<ph.w-5&&q[1]<ph.h-5;
+    const hs=def.cush.map(c=>{for(const len of [700,500,350,220,130]){const q=project(R,C,f,cx,cy,[def.P[0]+c.d[0]*len,def.P[1]+c.d[1]*len,0]);if(inImg(q))return q;}return null;});
+    if(hs.every(Boolean)){m.p=pp;m.h=hs;m.outer=false;}}
+  ph.pose={f,cam:[C[0],C[1]],height:-C[2],valid:-C[2]>150,part:true,rms,nballs:balls.length};
+  ph.rect=null;
+  return ph.pose;
+}
+// Look for the chalk lines near where the current camera estimate says they should be.
+function findMarkings(ph,g,R,C,f,cx,cy){
+  const d=ph.data.data, W=ph.w, Hh=ph.h;
+  const lum=(u,v)=>{const x=Math.floor(u),y=Math.floor(v);if(x<0||y<0||x>=W-1||y>=Hh-1)return -1;
+    const fx=u-x,fy=v-y,o=(y*W+x)*4,L=i=>0.3*d[i]+0.59*d[i+1]+0.11*d[i+2];
+    return (L(o)*(1-fx)+L(o+4)*fx)*(1-fy)+(L(o+W*4)*(1-fx)+L(o+W*4+4)*fx)*fy;};
+  const samples=[];
+  for(let y=40;y<=g.W-40;y+=40)samples.push({X:[g.baulk,y,0],n:[1,0]});
+  if(g.D)for(let a=95;a<=265;a+=5){const t=a*Math.PI/180;samples.push({X:[g.baulk+g.D*Math.cos(t),g.W/2+g.D*Math.sin(t),0],n:[Math.cos(t),Math.sin(t)]});}
+  const out=[];
+  for(const sp of samples){
+    const a=project(R,C,f,cx,cy,sp.X), b=project(R,C,f,cx,cy,[sp.X[0]+sp.n[0]*20,sp.X[1]+sp.n[1]*20,0]);
+    if(!a||!b)continue;const nl=Math.hypot(b[0]-a[0],b[1]-a[1]);if(nl<1)continue;
+    const nu=[(b[0]-a[0])/nl,(b[1]-a[1])/nl], span=Math.max(6,Math.min(25,nl*1.5));
+    const prof=[];for(let t=-span;t<=span;t+=0.5){const l=lum(a[0]+nu[0]*t,a[1]+nu[1]*t);if(l<0){prof.length=0;break;}prof.push([t,l]);}
+    if(prof.length<8)continue;
+    let pk=prof[0];for(const q of prof)if(q[1]>pk[1])pk=q;
+    const sorted=prof.map(q=>q[1]).sort((x,y)=>x-y),base=sorted[sorted.length>>1];
+    if(pk[1]-base<30||Math.abs(pk[0])>span-1)continue;       // a clear, bright, thin line only
+    // centre of the bright ridge
+    let sw=0,st=0;for(const [t,l] of prof)if(l>base+(pk[1]-base)*0.5&&Math.abs(t-pk[0])<4){sw+=l-base;st+=(l-base)*t;}
+    const tc=st/sw; out.push({X:sp.X,n:sp.n,q:[a[0]+nu[0]*tc,a[1]+nu[1]*tc]});
+  }
+  return out;
+}
+// Is this point on the table inside what the photo shows?
+function photoCovers(ph,x,y){
+  const H=ph.H,w=H[6]*x+H[7]*y+H[8];if(!(w>0))return false;
+  const u=(H[0]*x+H[1]*y+H[2])/w,v=(H[3]*x+H[4]*y+H[5])/w,m=0.02*Math.min(ph.w,ph.h);
+  return u>m&&v>m&&u<ph.w-m&&v<ph.h-m;
+}
+function defaultMarks(ph,g,pocket,second){
+  const raw=rawAnalysis(ph), w=ph.w,h=ph.h, def=pocketDefs(g).find(d=>d.id===pocket);
+  if(!second&&raw.guess&&!pocket.endsWith("m")){
+    // put each handle on the cushion whose direction matches the pocket's handedness
+    const g1=raw.guess, e1=[g1.h[0][0]-g1.p[0],g1.h[0][1]-g1.p[1]], e2=[g1.h[1][0]-g1.p[0],g1.h[1][1]-g1.p[1]];
+    const imgCross=e1[0]*e2[1]-e1[1]*e2[0], wd=def.cush, wCross=wd[0].d[0]*wd[1].d[1]-wd[0].d[1]*wd[1].d[0];
+    const h=Math.sign(imgCross)===Math.sign(wCross)?[g1.h[0],g1.h[1]]:[g1.h[1],g1.h[0]];
+    // the cloth's outline is the back of the cushions, one cushion-width outside the playing area
+    return {pocket,p:g1.p.slice(),h:h.map(q=>q.slice()),auto:true,outer:true};
+  }
+  const y0=second?0.2:0.8;
+  return {pocket,p:[w*0.5,h*y0],h:[[w*0.2,h*(second?0.35:0.55)],[w*0.8,h*(second?0.35:0.55)]],auto:false};
 }
 
 /* ---------- photo panel ---------- */
@@ -1562,11 +1895,13 @@ function showList(){
     const card=document.createElement("div");card.className="pp-slot";
     const cv=document.createElement("canvas");const tw=150,th=Math.round(tw*ph.h/ph.w);cv.width=tw*2;cv.height=th*2;cv.style.width=tw+"px";cv.style.height=th+"px";
     const cx=cv.getContext("2d");cx.drawImage(ph.canvas,0,0,cv.width,cv.height);
-    if(ph.corners){const k=cv.width/ph.w;cx.strokeStyle="#FFE58A";cx.lineWidth=3;cx.beginPath();
-      ph.corners.forEach((p,j)=>j?cx.lineTo(p[0]*k,p[1]*k):cx.moveTo(p[0]*k,p[1]*k));cx.closePath();cx.stroke();}
+    const k=cv.width/ph.w;cx.strokeStyle="#FFE58A";cx.lineWidth=3;
+    if(ph.mode==="part")(ph.marks||[]).forEach(m=>{m.h.forEach(q=>{cx.beginPath();cx.moveTo(m.p[0]*k,m.p[1]*k);cx.lineTo(q[0]*k,q[1]*k);cx.stroke();});});
+    else if(ph.corners){cx.beginPath();ph.corners.forEach((p,j)=>j?cx.lineTo(p[0]*k,p[1]*k):cx.moveTo(p[0]*k,p[1]*k));cx.closePath();cx.stroke();}
     const info=document.createElement("div");info.className="pp-info";
-    info.innerHTML=`<b>Photo ${i+1}</b><span class="dim">${ph.corners?"Corners set":"Corners needed"}</span>`;
-    const adj=document.createElement("button");adj.type="button";adj.textContent="Adjust corners";adj.addEventListener("click",()=>editCorners(ph));
+    const defs=pocketDefs(G), what=ph.mode==="part"?((ph.marks||[]).length?"Part: "+ph.marks.map(m=>defs.find(d=>d.id===m.pocket).name).join(" and "):"Part: choose the pocket"):"Whole table";
+    info.innerHTML=`<b>Photo ${i+1}</b><span class="dim">${what}</span>`;
+    const adj=document.createElement("button");adj.type="button";adj.textContent=ph.mode==="part"?"Adjust pockets":"Adjust corners";adj.addEventListener("click",()=>editCorners(ph));
     const rm=document.createElement("button");rm.type="button";rm.textContent="Remove";
     rm.addEventListener("click",()=>{G.photoSet.splice(i,1);showList();});
     info.append(adj,rm); card.append(cv,info); ppSlots.appendChild(card);
@@ -1585,7 +1920,12 @@ async function addFiles(files){
     ppMsg.textContent="Opening photo…"; await new Promise(r=>setTimeout(r,20));
     try{const ph=await loadPhoto(f);
       ppMsg.textContent="Finding the table…"; await new Promise(r=>setTimeout(r,20));
-      const c=autoCorners(ph,G); setCorners(ph,G,c||defaultCorners(ph)); ph.auto=!!c;
+      const c=autoCorners(ph,G);
+      // if the table's corners would fall outside the photo, it's a photo of part of the table
+      const out=c&&c.some(p=>p[0]<-0.03*ph.w||p[1]<-0.03*ph.h||p[0]>1.03*ph.w||p[1]>1.03*ph.h);
+      const raw=rawAnalysis(ph);
+      if(!c||out||raw.border>0.12){ph.mode="part";ph.marks=[];ph.H=null;ph.corners=c||defaultCorners(ph);rawAnalysis(ph);}
+      else{ph.mode="whole";setCorners(ph,G,c);ph.auto=true;}
       G.photoSet.push(ph); last=ph;
     }catch(err){ppMsg.textContent=err.message;}
   }
@@ -1600,8 +1940,64 @@ let edState=null;
 function editCorners(ph){
   editing=ph; ppList.hidden=true; ppEdit.hidden=false;
   document.getElementById("pp-edit-msg").textContent=ph.auto===false?"The table couldn't be found automatically. Drag the four markers onto the corners.":"";
+  showMode();
   requestAnimationFrame(()=>{layoutEditor();drawEditor();drawPreview();});
 }
+const edPoints=ph=>ph.mode==="part"?(ph.marks||[]).flatMap(m=>[m.p,...m.h]):ph.corners;
+function showMode(){
+  const ph=editing, part=ph.mode==="part";
+  document.getElementById("pp-m-whole").setAttribute("aria-pressed",String(!part));
+  document.getElementById("pp-m-part").setAttribute("aria-pressed",String(part));
+  document.getElementById("pp-part").hidden=!part;
+  document.getElementById("pp-whole-hint").hidden=part;
+  document.getElementById("pp-turn").hidden=part; document.getElementById("pp-auto").hidden=part;
+  document.getElementById("pp-clear").hidden=!part;
+  document.getElementById("pp-tbl-d").style.display=G.D?"":"none";
+  const tbl=document.getElementById("pp-tbl"); tbl.querySelectorAll("button").forEach(b=>b.remove());
+  if(part){
+    const col={gb:"l",yb:"l",gm:"m",ym:"m",gt:"r",yt:"r"}, row={gb:24,gm:24,gt:24,yb:76,ym:76,yt:76};
+    const short=G.key==="snooker"?{gb:"Green",yb:"Yellow",gm:"Green mid",ym:"Yellow mid",gt:"Green top",yt:"Yellow top"}
+                                 :{gb:"Baulk left",yb:"Baulk right",gm:"Mid left",ym:"Mid right",gt:"Top left",yt:"Top right"};
+    pocketDefs(G).forEach(d=>{const b=document.createElement("button");b.type="button";
+      const idx=(ph.marks||[]).findIndex(m=>m.pocket===d.id);
+      b.setAttribute("aria-pressed",String(idx>=0));b.setAttribute("aria-label",d.name);b.title=d.name;
+      b.innerHTML=(idx>=0?`<span class="n">${idx+1}</span>`:"")+short[d.id];
+      b.className="c-"+col[d.id];b.style.top=row[d.id]+"%";
+      b.addEventListener("click",()=>togglePocket(d.id));tbl.appendChild(b);});
+  }
+  partMessage();
+}
+function partMessage(){
+  const ph=editing, el=document.getElementById("pp-part-msg"); if(!ph||ph.mode!=="part"){el.textContent="";return;}
+  const marks=ph.marks||[], defs=pocketDefs(G);
+  if(!marks.length){el.textContent="";return;}
+  const parts=[];
+  marks.forEach((m,i)=>{const d=defs.find(q=>q.id===m.pocket);
+    parts.push(`${marks.length>1?(i+1)+". ":""}Put the round marker where the cushion edges meet at the ${d.name.toLowerCase()}, and slide the two square markers along the edges: ${d.cush[0].label.toLowerCase()} and ${d.cush[1].label.toLowerCase()}.`);});
+  const q=ph.pose;
+  if(q&&q.part){
+    if(!q.valid)parts.push("The markers don't make sense together yet: check each one is on the right cushion.");
+    else if(marks.length<2&&q.nballs<2)parts.push("There aren't enough clear balls in view to judge distance. A second pocket in the photo would help.");
+    else if(!ph.f35)parts.push("This photo doesn't say which lens was used, so distances are estimated.");
+  }
+  el.textContent=parts.join(" ");
+}
+function togglePocket(id){
+  const ph=editing; ph.marks=ph.marks||[];
+  const i=ph.marks.findIndex(m=>m.pocket===id);
+  if(i>=0)ph.marks.splice(i,1);
+  else{ if(ph.marks.length>=2)ph.marks.pop(); ph.marks.push(defaultMarks(ph,G,id,ph.marks.length>0)); }
+  solvePart(ph,G); showMode(); drawEditor(); drawPreview();
+}
+function setMode(mode){
+  const ph=editing; if(ph.mode===mode)return; ph.mode=mode;
+  if(mode==="part"){ph.marks=ph.marks||[];rawAnalysis(ph);solvePart(ph,G);}
+  else{const c=ph.corners||autoCorners(ph,G)||defaultCorners(ph);setCorners(ph,G,c);}
+  showMode(); drawEditor(); drawPreview();
+}
+document.getElementById("pp-m-whole").addEventListener("click",()=>setMode("whole"));
+document.getElementById("pp-m-part").addEventListener("click",()=>setMode("part"));
+document.getElementById("pp-clear").addEventListener("click",()=>{editing.marks=[];editing.H=null;editing.pose=null;showMode();drawEditor();drawPreview();});
 function layoutEditor(){
   const ph=editing, box=ppCanvas.parentElement.getBoundingClientRect(), dpr=window.devicePixelRatio||1;
   const maxH=Math.max(200,Math.min(box.width*ph.h/ph.w, window.innerHeight*0.55));
@@ -1613,27 +2009,52 @@ function drawEditor(){
   const ph=editing; if(!ph||!edState)return;
   const {k,dpr}=edState, cx=ppCanvas.getContext("2d"), s=k*dpr;
   cx.setTransform(1,0,0,1,0,0);cx.drawImage(ph.canvas,0,0,ppCanvas.width,ppCanvas.height);
+  if(ph.mode==="part"){drawPartMarks(cx,ph,s,dpr);drawMagnifier(cx,ph,s,dpr);return;}
   const P=ph.corners.map(p=>[p[0]*s,p[1]*s]);
   cx.lineWidth=2*dpr;cx.strokeStyle="rgba(255,255,255,.9)";cx.beginPath();P.forEach((p,i)=>i?cx.lineTo(...p):cx.moveTo(...p));cx.closePath();cx.stroke();
   cx.lineWidth=4*dpr;cx.strokeStyle="#FFE58A";cx.beginPath();cx.moveTo(...P[0]);cx.lineTo(...P[1]);cx.stroke();
-  if(ph.H){ // where the table's markings should be, given these corners
-    const pr=(x,y)=>{const q=hApply(ph.H,x,y);return [q[0]*s,q[1]*s];};
-    cx.save();cx.strokeStyle="#FFE58A";cx.lineWidth=2*dpr;cx.setLineDash([7*dpr,5*dpr]);cx.beginPath();
-    for(let k=0;k<=30;k++){const p=pr(G.baulk,G.W*k/30);k?cx.lineTo(...p):cx.moveTo(...p);}
-    if(G.D){for(let k=0;k<=36;k++){const a=Math.PI/2+Math.PI*k/36,p=pr(G.baulk+G.D*Math.cos(a),G.W/2+G.D*Math.sin(a));k?cx.lineTo(...p):cx.moveTo(...p);}}
-    cx.stroke();cx.setLineDash([]);
-    for(const k in G.spots){const p=pr(...G.spots[k]);cx.beginPath();cx.arc(p[0],p[1],3*dpr,0,Math.PI*2);cx.fillStyle="#FFE58A";cx.fill();}
-    cx.restore();
-  }
+  drawOverlay(cx,ph,s,dpr);
   cx.font=`600 ${12*dpr}px system-ui,sans-serif`;cx.textAlign="center";cx.textBaseline="middle";
   const mid=[(P[0][0]+P[1][0])/2,(P[0][1]+P[1][1])/2];
   label(cx,"Baulk end",mid[0],mid[1]+16*dpr,dpr,"#FFE58A");
   P.forEach((p,i)=>{cx.beginPath();cx.arc(p[0],p[1],11*dpr,0,Math.PI*2);cx.fillStyle="rgba(0,0,0,.35)";cx.fill();
     cx.lineWidth=2.5*dpr;cx.strokeStyle=i<2?"#FFE58A":"#FFFFFF";cx.stroke();
     cx.beginPath();cx.arc(p[0],p[1],2*dpr,0,Math.PI*2);cx.fillStyle=i<2?"#FFE58A":"#FFFFFF";cx.fill();
-    const off=p[1]<30*dpr?20:-20; label(cx,CORNER_LABELS[i],p[0],p[1]+off*dpr,dpr,i<2?"#FFE58A":"#FFFFFF");});
-  if(edState.mag){ // magnifier while dragging a marker
-    const i=edState.mag, p=ph.corners[i], R=64*dpr, z=3, left=p[0]*s>ppCanvas.width/2;
+    const off=p[1]<30*dpr?20:-20; label(cx,cornerLabels(G)[i],p[0],p[1]+off*dpr,dpr,i<2?"#FFE58A":"#FFFFFF");});
+  drawMagnifier(cx,ph,s,dpr);
+}
+function drawOverlay(cx,ph,s,dpr){ // where the table's markings should be, given the markers
+  if(!ph.H)return;
+  const pr=(x,y)=>{const H=ph.H,w=H[6]*x+H[7]*y+H[8];if(!(w>0))return null;const q=hApply(H,x,y);return [q[0]*s,q[1]*s];};
+  const poly=pts=>{let open=false;cx.beginPath();for(const [x,y] of pts){const p=pr(x,y);if(!p){open=false;continue;}open?cx.lineTo(...p):cx.moveTo(...p);open=true;}cx.stroke();};
+  cx.save();cx.strokeStyle="#FFE58A";cx.lineWidth=2*dpr;cx.setLineDash([7*dpr,5*dpr]);
+  const n=40, seg=(a,b)=>[...Array(n+1)].map((_,k)=>[a[0]+(b[0]-a[0])*k/n,a[1]+(b[1]-a[1])*k/n]);
+  poly(seg([G.baulk,0],[G.baulk,G.W]));
+  if(G.D)poly([...Array(37)].map((_,k)=>{const a=Math.PI/2+Math.PI*k/36;return [G.baulk+G.D*Math.cos(a),G.W/2+G.D*Math.sin(a)];}));
+  if(ph.mode==="part"){cx.strokeStyle="rgba(255,255,255,.85)";for(const [a,b] of [[[0,0],[G.L,0]],[[G.L,0],[G.L,G.W]],[[G.L,G.W],[0,G.W]],[[0,G.W],[0,0]]])poly(seg(a,b));}
+  cx.setLineDash([]);
+  for(const k in G.spots){const p=pr(...G.spots[k]);if(!p)continue;cx.beginPath();cx.arc(p[0],p[1],3*dpr,0,Math.PI*2);cx.fillStyle="#FFE58A";cx.fill();}
+  cx.restore();
+}
+function drawPartMarks(cx,ph,s,dpr){
+  drawOverlay(cx,ph,s,dpr);
+  const defs=pocketDefs(G);
+  cx.font=`600 ${12*dpr}px system-ui,sans-serif`;cx.textAlign="center";cx.textBaseline="middle";
+  (ph.marks||[]).forEach(m=>{const d=defs.find(q=>q.id===m.pocket), P=[m.p[0]*s,m.p[1]*s];
+    m.h.forEach((q,i)=>{const Q=[q[0]*s,q[1]*s];
+      cx.lineWidth=3*dpr;cx.strokeStyle="#FFE58A";cx.beginPath();cx.moveTo(...P);cx.lineTo(...Q);cx.stroke();
+      cx.fillStyle="rgba(0,0,0,.35)";cx.fillRect(Q[0]-9*dpr,Q[1]-9*dpr,18*dpr,18*dpr);
+      cx.lineWidth=2.5*dpr;cx.strokeStyle="#FFFFFF";cx.strokeRect(Q[0]-9*dpr,Q[1]-9*dpr,18*dpr,18*dpr);
+      label(cx,d.cush[i].label,Q[0],Q[1]+(Q[1]<30*dpr?22:-22)*dpr,dpr,"#FFFFFF");});
+    cx.beginPath();cx.arc(P[0],P[1],12*dpr,0,Math.PI*2);cx.fillStyle="rgba(0,0,0,.35)";cx.fill();
+    cx.lineWidth=2.5*dpr;cx.strokeStyle="#FFE58A";cx.stroke();
+    cx.beginPath();cx.arc(P[0],P[1],2*dpr,0,Math.PI*2);cx.fillStyle="#FFE58A";cx.fill();
+    label(cx,d.name,P[0],P[1]+(P[1]<30*dpr?22:-22)*dpr,dpr,"#FFE58A");
+  });
+}
+function drawMagnifier(cx,ph,s,dpr){
+  if(edState.mag!=null){ // magnifier while dragging a marker
+    const i=edState.mag, p=edPoints(ph)[i], R=64*dpr, z=3, left=p[0]*s>ppCanvas.width/2;
     const mx=left?R+8*dpr:ppCanvas.width-R-8*dpr, my=R+8*dpr;
     cx.save();cx.beginPath();cx.arc(mx,my,R,0,Math.PI*2);cx.clip();
     const half=R/(z*s); // source half-size in photo px
@@ -1645,7 +2066,8 @@ function drawEditor(){
 function label(cx,t,x,y,dpr,col){const w=cx.measureText(t).width+10*dpr;cx.fillStyle="rgba(0,0,0,.6)";
   cx.fillRect(x-w/2,y-9*dpr,w,18*dpr);cx.fillStyle=col;cx.fillText(t,x,y);}
 function drawPreview(){
-  const ph=editing; if(!ph||!ph.H)return;
+  const ph=editing; if(!ph)return;
+  if(!ph.H){const cx=ppPrev.getContext("2d");cx.clearRect(0,0,ppPrev.width,ppPrev.height);return;}
   const dpr=window.devicePixelRatio||1, cssW=Math.min(ppPrev.parentElement.clientWidth||320,560), m=G.C;
   const scale=(G.L+2*m)/(cssW*dpr), r=rectify(ph,G,scale,m);
   ppPrev.width=r.w;ppPrev.height=r.h;ppPrev.style.width=cssW+"px";ppPrev.style.height=(cssW*r.h/r.w)+"px";
@@ -1662,18 +2084,19 @@ function drawPreview(){
 function edPoint(e){const r=ppCanvas.getBoundingClientRect();return [(e.clientX-r.left)/edState.k,(e.clientY-r.top)/edState.k];}
 ppCanvas.addEventListener("pointerdown",e=>{
   if(!editing)return; const [x,y]=edPoint(e); let best=-1,bd=40/edState.k;
-  editing.corners.forEach((p,i)=>{const d=Math.hypot(p[0]-x,p[1]-y);if(d<bd){bd=d;best=i;}});
+  edPoints(editing).forEach((p,i)=>{const d=Math.hypot(p[0]-x,p[1]-y);if(d<bd){bd=d;best=i;}});
   if(best<0)return; e.preventDefault(); ppCanvas.setPointerCapture(e.pointerId);
   edState.drag={i:best,id:e.pointerId,last:[e.clientX,e.clientY],gear:e.pointerType==="mouse"?1:0.5}; edState.mag=best; drawEditor();
 });
 ppCanvas.addEventListener("pointermove",e=>{
   const dr=edState&&edState.drag; if(!dr||e.pointerId!==dr.id)return;
-  const p=editing.corners[dr.i]; p[0]+=(e.clientX-dr.last[0])*dr.gear/edState.k; p[1]+=(e.clientY-dr.last[1])*dr.gear/edState.k;
+  const p=edPoints(editing)[dr.i]; p[0]+=(e.clientX-dr.last[0])*dr.gear/edState.k; p[1]+=(e.clientY-dr.last[1])*dr.gear/edState.k;
   p[0]=Math.max(0,Math.min(editing.w,p[0]));p[1]=Math.max(0,Math.min(editing.h,p[1]));
   dr.last=[e.clientX,e.clientY]; drawEditor();
 });
 function edEnd(e){const dr=edState&&edState.drag;if(!dr||e.pointerId!==dr.id)return;edState.drag=null;edState.mag=null;
-  setCorners(editing,G,editing.corners);drawEditor();drawPreview();}
+  if(editing.mode==="part"){solvePart(editing,G);partMessage();}else setCorners(editing,G,editing.corners);
+  drawEditor();drawPreview();}
 ppCanvas.addEventListener("pointerup",edEnd);ppCanvas.addEventListener("pointercancel",edEnd);
 document.getElementById("pp-turn").addEventListener("click",()=>{
   const c=editing.corners; setCorners(editing,G,[c[1],c[2],c[3],c[0]]); editing.orientLocked=true; drawEditor(); drawPreview();});
@@ -1688,7 +2111,9 @@ ppBuild.addEventListener("click",()=>{
   setTimeout(()=>{
     let res; try{res=buildFromPhotos(G);}catch(err){ppMsg.textContent="Something went wrong reading the photos. Try adjusting the corners.";ppBuild.disabled=false;console.error(err);return;}
     closePhotos(); G.selected=null; G.armed=false;
-    const parts=[`Placed ${res.placed} of ${G.balls.length} balls from ${res.views} photo${res.views>1?"s":""}.`];
+    const parts=res.partOnly?[`Updated the area in the photo${res.views>1?"s":""}: ${res.placed} ball${res.placed===1?"":"s"} placed.`+(res.kept?` The other ${res.kept} ball${res.kept===1?" was":"s were"} left where ${res.kept===1?"it was":"they were"}.`:"")]
+      :[`Placed ${res.placed} of ${G.balls.length} balls from ${res.views} photo${res.views>1?"s":""}.`];
+    if(res.weak)parts.push("With only one pocket and few balls in view, positions away from the pocket are approximate.");
     if(res.flagged)parts.push(`${res.flagged} marked in orange to check.`);
     if(res.missing)parts.push(`${res.missing} not found: they're in the tray.`);
     if(res.disagree)parts.unshift("The photos don't line up well, so check the corners and the Baulk end on each one (From photos, Adjust corners).");
@@ -1743,7 +2168,7 @@ function fromHash(record){
 }
 window.addEventListener("hashchange",()=>fromHash(true));
 
-if(/[?&]debug\b/.test(location.search))window.__board={game:()=>G,photos:()=>G.photoSet,setCorners:(i,c)=>setCorners(G.photoSet[i],G,c),
+if(/[?&]debug\b/.test(location.search))window.__board={game:()=>G,photos:()=>G.photoSet,solvePart:i=>solvePart(G.photoSet[i],G),setCorners:(i,c)=>setCorners(G.photoSet[i],G,c),
   rectURL:i=>{const p=G.photoSet[i];const c=document.createElement("canvas");c.width=p.rect.w;c.height=p.rect.h;c.getContext("2d").putImageData(p.rect.img,0,0);return c.toDataURL("image/png");}};
 // Start on snooker at the break-off. A link ending #pool opens the pool table; a shared code opens its position.
 setGame("snooker");
